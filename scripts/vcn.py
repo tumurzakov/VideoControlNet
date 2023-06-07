@@ -141,7 +141,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_previous_frames = [],
                vcn_max_epochs = 150,
                vcn_stop_after_inefficient_steps = 20,
-               vcn_optimizer_lr = 0.1,
+               vcn_optimizer_lr = 0.01,
                vcn_scheduler_factor = 0.1,
                vcn_scheduler_patience = 5,
                **kwargs):
