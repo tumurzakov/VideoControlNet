@@ -161,7 +161,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_scheduler_factor = vcn_scheduler_factor
     self.vcn_scheduler_patience = vcn_scheduler_patience
     self.vcn_noise = None
-    self.vcn_minimal_loss = None
 
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
@@ -184,8 +183,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                     p=self)
 
       if self.vcn_flows != None and len(self.vcn_flows) > 0:
-          self.vcn_minimal_loss = None
-
           x = self.temporal_consistency_optimization(x,
                                                      conditioning,
                                                      unconditional_conditioning,
@@ -262,6 +259,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     """
     self.loss_history = []
 
+    vcn_minimal_loss = None
     optimal_noise = noise
 
     noise.requires_grad_(True)
@@ -304,9 +302,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         loss = sum ( loss )/ len ( loss )
         self.loss_history.append(loss.item())
 
-        if self.vcn_minimal_loss == None or loss < self.vcn_minimal_loss:
-          print("\n===> setting minimal loss", loss, self.vcn_minimal_loss)
-          self.vcn_minimal_loss = loss
+        if vcn_minimal_loss == None or loss < vcn_minimal_loss:
+          print("\n===> setting minimal loss", loss, vcn_minimal_loss)
+          vcn_minimal_loss = loss
           optimal_noise = noise.clone()
 
       loss.backward ()
