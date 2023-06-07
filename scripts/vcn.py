@@ -1,5 +1,4 @@
 #@title Define infer
-%cd /content/stable-diffusion-webui
 
 import base64
 import io
@@ -33,7 +32,7 @@ import piexif
 import piexif.helper
 import numpy as np
 
-import importlib  
+import importlib
 
 from modules.shared import opts, state
 from modules import sd_samplers, deepbooru, sd_hijack, images, scripts, ui, postprocessing, sd_samplers_common
@@ -80,7 +79,7 @@ def append_cnet_units(units=[], controlnets=[], **kwargs):
   for cnet_module in controlnets:
 
     cnet_images = controlnets[cnet_module]['images']
-    
+
     cnet_weight = 1.0
     if 'weight' in controlnets[cnet_module]:
       cnet_weight = controlnets[cnet_module]['weight']
@@ -120,7 +119,7 @@ def hash_tensor(tensor):
     tensor_bytes = tensor_np.tobytes()
     hash_value = hashlib.sha256(tensor_bytes).hexdigest()
     return hash_value
-  
+
 def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
   if predict_cids:
       if z.dim() == 4:
@@ -129,7 +128,7 @@ def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
       z = rearrange(z, 'b h w c -> b c h w').contiguous()
 
   z = 1. / self.scale_factor * z
-  
+
   with torch.enable_grad():
     d = self.first_stage_model.decode(z)
     return d
@@ -138,7 +137,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
-    
+
     self.sampler = sd_samplers.create_sampler(self.sampler_name, self.sd_model)
     self.sampler.orig_func = self.sampler.func
     self.sampler.func = torch.enable_grad()(lambda model, x, sigmas, *args, **kwargs: self.sampler.orig_func.__wrapped__(model, x, sigmas, *args, **kwargs))
@@ -233,8 +232,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                             conditioning,
                                             unconditional_conditioning,
                                             image_conditioning=self.image_conditioning)
-    
-      
+
+
       with torch.enable_grad():
         x_samples_ddim = [decode_first_stage(self.sd_model, samples_ddim)[0]]
         x_samples_ddim = torch.stack(x_samples_ddim).float()
@@ -250,7 +249,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         loss = []
 
         err = torch . where ( warped != 0 , warped - ref , 0) ** 2
-        
+
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
         loss = sum ( loss )/ len ( loss )
@@ -286,7 +285,7 @@ def infer(controlnets=[], flows=[], previous_frames=[], vcn_epochs = 150, **kwar
   script_args = tuple(units)
 
   p = StableDiffusionProcessingImg2ImgVCN(
-      sd_model=shared.sd_model, 
+      sd_model=shared.sd_model,
       do_not_save_samples=True,
       **kwargs
   )
@@ -297,12 +296,12 @@ def infer(controlnets=[], flows=[], previous_frames=[], vcn_epochs = 150, **kwar
   p.script_args = tuple(script_args)
   p.scripts = scripts.scripts_txt2img
   p.scripts.initialize_scripts(False)
-  
+
   enabled_scripts = []
 
   for index in range(len(p.scripts.scripts)):
     script = p.scripts.scripts[index]
-      
+
     if script.title() == 'ControlNet':
       p.scripts.scripts[index].args_from = cnet_args_from
       p.scripts.scripts[index].args_to = cnet_args_to
@@ -339,7 +338,7 @@ def engrid(images):
     if x == power:
       x = 0
       y = y + 1
-  
+
   return grid
 
 def degrid(grid, power):
