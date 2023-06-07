@@ -292,7 +292,17 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     return optimal_noise
 
 
-def infer(controlnets=[], flows=[], previous_frames=[], vcn_epochs = 150, **kwargs):
+def infer(controlnets=[],
+          vcn_flows = [],
+          vcn_previous_frames = [],
+          vcn_max_epochs = 150,
+          vcn_stop_after_inefficient_steps = 20,
+          vcn_optimizer_lr = 0.1,
+          vcn_optimizer_momentum = 0.9,
+          vcn_scheduler_factor = 0.1,
+          vcn_scheduler_patience = 5,
+          **kwargs):
+
   args = {}
   script_args = {}
 
@@ -304,9 +314,16 @@ def infer(controlnets=[], flows=[], previous_frames=[], vcn_epochs = 150, **kwar
   p = StableDiffusionProcessingImg2ImgVCN(
       sd_model=shared.sd_model,
       do_not_save_samples=True,
-      vcn_max_epochs=vcn_epochs,
-      vcn_flows=vcn_flows,
-      vcn_previous_frames=previous_frames,
+
+      vcn_flows = vcn_flows,
+      vcn_max_epochs = vcn_max_epochs,
+      vcn_previous_frames = vcn_previous_frames,
+      vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps,
+      vcn_optimizer_lr = vcn_optimizer_lr,
+      vcn_optimizer_momentum = vcn_optimizer_momentum,
+      vcn_scheduler_factor = vcn_scheduler_factor,
+      vcn_scheduler_patience = vcn_scheduler_patience,
+
       **kwargs
   )
 
