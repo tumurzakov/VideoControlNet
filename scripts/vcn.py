@@ -260,7 +260,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref = self.vcn_previous_frames[0]
 
-        warped = self.flow_warping ( x_sample , flows[0])
+        warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
         loss = []
 
