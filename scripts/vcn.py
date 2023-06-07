@@ -194,21 +194,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                      vcn_optimizer_lr=self.vcn_optimizer_lr,
                                                      )
 
-          x = self.temporal_consistency_optimization(x,
-                                                     conditioning,
-                                                     unconditional_conditioning,
-                                                     prompts,
-                                                     vcn_max_epochs=10,
-                                                     vcn_optimizer_lr=self.vcn_optimizer_lr/10,
-                                                     )
-
-          x = self.temporal_consistency_optimization(x,
-                                                     conditioning,
-                                                     unconditional_conditioning,
-                                                     prompts,
-                                                     vcn_max_epochs=10,
-                                                     vcn_optimizer_lr=self.vcn_optimizer_lr/100,
-                                                     )
           self.vcn_noise = x
 
       if self.initial_noise_multiplier != 1.0:
