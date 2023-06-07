@@ -320,7 +320,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     return optimal_noise
 
 
-def init(controlnets=[],
+def init():
+  load_cnet_models()
+
+def infer(controlnets=[],
           vcn_noise = None,
           vcn_flows = [],
           vcn_previous_frames = [],
@@ -330,10 +333,6 @@ def init(controlnets=[],
           vcn_scheduler_factor = 0.1,
           vcn_scheduler_patience = 5,
           **kwargs):
-
-  load_cnet_models()
-
-
 
   p = StableDiffusionProcessingImg2ImgVCN(
       sd_model=shared.sd_model,
@@ -350,42 +349,6 @@ def init(controlnets=[],
 
       **kwargs
   )
-
-  return p
-
-def infer(controlnets=[],
-          vcn_noise = None,
-          vcn_flows = [],
-          vcn_previous_frames = [],
-          vcn_max_epochs = 150,
-          vcn_stop_after_inefficient_steps = 20,
-          vcn_optimizer_lr = 0.01,
-          vcn_scheduler_factor = 0.1,
-          vcn_scheduler_patience = 5,
-          close_p = True,
-          p = None,
-          **kwargs):
-
-  if p == None:
-      p = init(controlnets,
-              vcn_noise,
-              vcn_flows,
-              vcn_previous_frames,
-              vcn_max_epochs,
-              vcn_stop_after_inefficient_steps,
-              vcn_optimizer_lr,
-              vcn_scheduler_factor,
-              vcn_scheduler_patience,
-              **kwargs)
-
-  p.vcn_noise = vcn_noise
-  p.vcn_flows = vcn_flows
-  p.vcn_previous_frames = vcn_previous_frames
-  p.vcn_max_epochs = vcn_max_epochs
-  p.vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps
-  p.vcn_optimizer_lr = vcn_optimizer_lr
-  p.vcn_scheduler_factor = vcn_scheduler_factor
-  p.vcn_scheduler_patience = vcn_scheduler_patience
 
   args = {}
   script_args = {}
@@ -417,15 +380,12 @@ def infer(controlnets=[],
   processed = process_images(p)
   shared.state.end()
 
-  if close_p:
-    close(p)
+  processed.vcn_noise = p.vcn_noise
 
-  return processed.images
-
-def close(p):
   p.close()
   shared.total_tqdm.clear()
 
+  return processed
 
 def engrid(images):
   power = int(math.sqrt(len(images)))
