@@ -221,7 +221,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     noise.requires_grad_(True)
     self.init_latent.requires_grad_(True)
-    optimizer = torch.optim.Adam([noise], lr=self.optimizer_lr)
+    optimizer = torch.optim.Adam([noise], lr=self.vcn_optimizer_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
     for epoch in range (self.vcn_epochs):
