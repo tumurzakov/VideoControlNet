@@ -258,7 +258,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         x_sample = x_samples_ddim[0] * 255.0
         x_sample = x_sample.permute(1, 2, 0)
 
-        ref = self.vcn_previous_frames[0]
+        ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
         warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
