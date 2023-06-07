@@ -210,7 +210,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     n_epochs : number of epochs of the optimization
     flow : float tensor in [T -1 , H , W , 2] format
     """
-    self.history = []
+    self.loss_history = []
 
     minimal_loss = None
     optimal_noise = noise
@@ -253,7 +253,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
         loss = sum ( loss )/ len ( loss )
-        history.append(loss.item())
+        self.loss_history.append(loss.item())
 
         if minimal_loss == None or loss < minimal_loss:
           print("\n===> setting minimal loss", minimal_loss)
@@ -265,7 +265,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       optimizer.step ()
       scheduler.step(loss)
 
-      if min(history[-20:]) > minimal_loss:
+      if min(self.loss_history[-20:]) > minimal_loss:
         break
 
       current_lr = optimizer.param_groups[0]['lr']
