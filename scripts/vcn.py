@@ -137,6 +137,7 @@ def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
 class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
   def __init__(self,
+               vcn_noise = None,
                vcn_flows = [],
                vcn_previous_frames = [],
                vcn_max_epochs = 150,
@@ -155,6 +156,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_optimizer_lr = vcn_optimizer_lr
     self.vcn_scheduler_factor = vcn_scheduler_factor
     self.vcn_scheduler_patience = vcn_scheduler_patience
+    self.vcn_noise = None
 
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
@@ -165,20 +167,53 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
 
   def sample(self, conditioning, unconditional_conditioning, seeds, subseeds, subseed_strength, prompts):
-      x = create_random_tensors([opt_C, self.height // opt_f, self.width // opt_f], seeds=seeds, subseeds=subseeds, subseed_strength=self.subseed_strength, seed_resize_from_h=self.seed_resize_from_h, seed_resize_from_w=self.seed_resize_from_w, p=self)
+      if self.vcn_noise != None:
+          x = self.vcn_noise
+      else:
+          x = create_random_tensors([opt_C, self.height // opt_f, self.width // opt_f],
+                                    seeds=seeds,
+                                    subseeds=subseeds,
+                                    subseed_strength=self.subseed_strength,
+                                    seed_resize_from_h=self.seed_resize_from_h,
+                                    seed_resize_from_w=self.seed_resize_from_w,
+                                    p=self)
 
       if self.vcn_flows != None and len(self.vcn_flows) > 0:
           x = self.temporal_consistency_optimization(x,
-                                                      conditioning,
-                                                      unconditional_conditioning,
-                                                      prompts,
-                                                      )
+                                                     conditioning,
+                                                     unconditional_conditioning,
+                                                     prompts,
+                                                     vcn_max_epochs=self.vcn_max_epochs,
+                                                     vcn_optimizer_lr=self.vcn_optimizer_lr,
+                                                     )
+
+          x = self.temporal_consistency_optimization(x,
+                                                     conditioning,
+                                                     unconditional_conditioning,
+                                                     prompts,
+                                                     vcn_max_epochs=10,
+                                                     vcn_optimizer_lr=self.vcn_optimizer_lr/10,
+                                                     )
+
+          x = self.temporal_consistency_optimization(x,
+                                                     conditioning,
+                                                     unconditional_conditioning,
+                                                     prompts,
+                                                     vcn_max_epochs=10,
+                                                     vcn_optimizer_lr=self.vcn_optimizer_lr/100,
+                                                     )
+          self.vcn_noise = x
 
       if self.initial_noise_multiplier != 1.0:
           self.extra_generation_params["Noise multiplier"] = self.initial_noise_multiplier
           x *= self.initial_noise_multiplier
 
-      samples = self.sampler.sample_img2img(self, self.init_latent, x, conditioning, unconditional_conditioning, image_conditioning=self.image_conditioning)
+      samples = self.sampler.sample_img2img(self,
+                                            self.init_latent,
+                                            x,
+                                            conditioning,
+                                            unconditional_conditioning,
+                                            image_conditioning=self.image_conditioning)
 
       if self.mask is not None:
           samples = samples * self.nmask + self.init_latent * self.mask
@@ -218,7 +253,13 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       return frame
 
-  def temporal_consistency_optimization(self, noise, conditioning, unconditional_conditioning, prompts):
+  def temporal_consistency_optimization(self,
+                                        noise,
+                                        conditioning,
+                                        unconditional_conditioning,
+                                        prompts,
+                                        vcn_max_epochs=150,
+                                        vcn_optimizer_lr=0.01):
     """
     Craft an optimal noise to generate temporally consistent video
     args :
@@ -226,8 +267,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     conditioning : float tensor in [T , H , W , C ] format
     unconditional_conditioning : float tensor in [T , H , W , C ] format
     prompts : textual conditioning strings
-    n_epochs : number of epochs of the optimization
-    flow : float tensor in [T -1 , H , W , 2] format
     """
     self.loss_history = []
 
@@ -237,7 +276,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     noise.requires_grad_(True)
     self.init_latent.requires_grad_(True)
     optimizer = torch.optim.AdamW([noise], lr=self.vcn_optimizer_lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=self.vcn_scheduler_factor, patience=self.vcn_scheduler_patience)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                           mode='min',
+                                                           factor=self.vcn_scheduler_factor,
+                                                           patience=self.vcn_scheduler_patience)
 
     for epoch in range (self.vcn_max_epochs):
 
@@ -291,11 +333,12 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
 
 def infer(controlnets=[],
+          vcn_noise = None,
           vcn_flows = [],
           vcn_previous_frames = [],
           vcn_max_epochs = 150,
           vcn_stop_after_inefficient_steps = 20,
-          vcn_optimizer_lr = 0.1,
+          vcn_optimizer_lr = 0.01,
           vcn_scheduler_factor = 0.1,
           vcn_scheduler_patience = 5,
           **kwargs):
@@ -312,6 +355,7 @@ def infer(controlnets=[],
       sd_model=shared.sd_model,
       do_not_save_samples=True,
 
+      vcn_noise = None,
       vcn_flows = vcn_flows,
       vcn_max_epochs = vcn_max_epochs,
       vcn_previous_frames = vcn_previous_frames,
