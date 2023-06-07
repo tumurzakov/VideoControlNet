@@ -1,4 +1,3 @@
-import torch
 import base64
 import io
 import time
@@ -30,6 +29,7 @@ from typing import List
 import piexif
 import piexif.helper
 import numpy as np
+import torch
 
 import importlib
 
