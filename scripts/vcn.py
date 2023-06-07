@@ -332,7 +332,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     return optimal_noise
 
 
-def infer(controlnets=[],
+def init(controlnets=[],
           vcn_noise = None,
           vcn_flows = [],
           vcn_previous_frames = [],
@@ -385,14 +385,54 @@ def infer(controlnets=[],
   p.scripts.scripts = enabled_scripts
   p.scripts.alwayson_scripts = enabled_scripts
 
+  return p
+
+def infer(controlnets=[],
+          vcn_noise = None,
+          vcn_flows = [],
+          vcn_previous_frames = [],
+          vcn_max_epochs = 150,
+          vcn_stop_after_inefficient_steps = 20,
+          vcn_optimizer_lr = 0.01,
+          vcn_scheduler_factor = 0.1,
+          vcn_scheduler_patience = 5,
+          close = True,
+          p = None,
+          **kwargs):
+
+  if p == None:
+      p = init(controlnets,
+              vcn_noise,
+              vcn_flows,
+              vcn_previous_frames,
+              vcn_max_epochs,
+              vcn_stop_after_inefficient_steps,
+              vcn_optimizer_lr,
+              vcn_scheduler_factor,
+              vcn_scheduler_patience,
+              **kwargs)
+
+  p.vcn_noise = vcn_noise
+  p.vcn_flows = vcn_flows
+  p.vcn_previous_frames = vcn_previous_frames
+  p.vcn_max_epochs = vcn_max_epochs
+  p.vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps
+  p.vcn_optimizer_lr = vcn_optimizer_lr
+  p.vcn_scheduler_factor = vcn_scheduler_factor
+  p.vcn_scheduler_patience = vcn_scheduler_patience
+
   shared.state.begin()
   processed = process_images(p)
   shared.state.end()
 
-  p.close()
-  shared.total_tqdm.clear()
+  if close:
+    close(p)
 
   return processed.images
+
+def close(p):
+  p.close()
+  shared.total_tqdm.clear()
 
 
 def engrid(images):
