@@ -34,6 +34,7 @@ import torch
 import matplotlib.pyplot as plt
 
 import importlib
+import hashlib
 
 from modules.shared import opts, state
 from modules import sd_samplers, deepbooru, sd_hijack, images, scripts, ui, postprocessing, sd_samplers_common
