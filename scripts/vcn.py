@@ -142,7 +142,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_max_epochs = 150,
                vcn_stop_after_inefficient_steps = 20,
                vcn_optimizer_lr = 0.1,
-               vcn_optimizer_momentum = 0.9,
                vcn_scheduler_factor = 0.1,
                vcn_scheduler_patience = 5,
                **kwargs):
@@ -154,7 +153,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_previous_frames = vcn_previous_frames
     self.vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps
     self.vcn_optimizer_lr = vcn_optimizer_lr
-    self.vcn_optimizer_momentum = vcn_optimizer_momentum
     self.vcn_scheduler_factor = vcn_scheduler_factor
     self.vcn_scheduler_patience = vcn_scheduler_patience
 
@@ -238,7 +236,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     noise.requires_grad_(True)
     self.init_latent.requires_grad_(True)
-    optimizer = torch.optim.Adam([noise], lr=self.vcn_optimizer_lr, momentum=self.vcn_optimizer_momentum)
+    optimizer = torch.optim.AdamW([noise], lr=self.vcn_optimizer_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=self.vcn_scheduler_factor, patience=self.vcn_scheduler_patience)
 
     for epoch in range (self.vcn_max_epochs):
@@ -298,7 +296,6 @@ def infer(controlnets=[],
           vcn_max_epochs = 150,
           vcn_stop_after_inefficient_steps = 20,
           vcn_optimizer_lr = 0.1,
-          vcn_optimizer_momentum = 0.9,
           vcn_scheduler_factor = 0.1,
           vcn_scheduler_patience = 5,
           **kwargs):
@@ -320,7 +317,6 @@ def infer(controlnets=[],
       vcn_previous_frames = vcn_previous_frames,
       vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps,
       vcn_optimizer_lr = vcn_optimizer_lr,
-      vcn_optimizer_momentum = vcn_optimizer_momentum,
       vcn_scheduler_factor = vcn_scheduler_factor,
       vcn_scheduler_patience = vcn_scheduler_patience,
 
