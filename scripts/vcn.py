@@ -1,5 +1,4 @@
-#@title Define infer
-
+import torch
 import base64
 import io
 import time
