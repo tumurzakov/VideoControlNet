@@ -402,7 +402,7 @@ def infer(controlnets=[],
           vcn_optimizer_lr = 0.01,
           vcn_scheduler_factor = 0.1,
           vcn_scheduler_patience = 5,
-          close = True,
+          close_p = True,
           p = None,
           **kwargs):
 
@@ -431,7 +431,7 @@ def infer(controlnets=[],
   processed = process_images(p)
   shared.state.end()
 
-  if close:
+  if close_p:
     close(p)
 
   return processed.images
