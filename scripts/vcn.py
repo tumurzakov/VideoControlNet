@@ -310,13 +310,13 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       optimizer.step ()
       scheduler.step(loss)
 
-      if min(self.loss_history[-self.vcn_stop_after_inefficient_steps:]) > minimal_loss:
+      if min(self.loss_history[-self.vcn_stop_after_inefficient_steps:]) > vcn_minimal_loss:
         break
 
       current_lr = optimizer.param_groups[0]['lr']
       print("\n===> loss", epoch, loss.item(), current_lr, hash_tensor(noise))
 
-    print("\n====> final", minimal_loss, hash_tensor(optimal_noise))
+    print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_noise))
     return optimal_noise
 
 
