@@ -32,6 +32,7 @@ import piexif.helper
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import cv2 as cv
 
 import importlib
 import hashlib
@@ -463,3 +464,28 @@ def degrid(grid, power):
       img = grid.crop((x*dimx, y*dimy, (x+1)*dimx, (y+1)*dimy))
       images.append(img)
   return images
+
+def get_flow(frame1, frame2):
+  f1 = frame1.convert('L')
+  f2 = frame2.convert('L')
+
+  gray1 = np.array(f1)
+  gray2 = np.array(f2)
+
+  hsv = np.zeros_like(gray1)
+  hsv[..., 1] = 255
+
+  flow = cv.calcOpticalFlowFarneback(
+      prev=gray1,
+      next=gray2,
+      flow=None,
+      pyr_scale=0.5,
+      levels=3,
+      winsize=15,
+      iterations=3,
+      poly_n=7,
+      poly_sigma=1.5,
+      flags=0)
+  flow = torch.tensor(flow)
+  flow = flow.requires_grad_(True)
+  return flow
