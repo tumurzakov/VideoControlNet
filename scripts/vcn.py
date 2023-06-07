@@ -418,6 +418,8 @@ def infer(controlnets=[],
               vcn_scheduler_patience,
               **kwargs)
 
+  print("\n===>p", p)
+
   p.vcn_noise = vcn_noise
   p.vcn_flows = vcn_flows
   p.vcn_previous_frames = vcn_previous_frames
