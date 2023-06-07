@@ -333,13 +333,7 @@ def init(controlnets=[],
 
   load_cnet_models()
 
-  args = {}
-  script_args = {}
 
-  units = []
-  units, cnet_args_from, cnet_args_to = append_cnet_units(units, controlnets, **kwargs)
-
-  script_args = tuple(units)
 
   p = StableDiffusionProcessingImg2ImgVCN(
       sd_model=shared.sd_model,
@@ -356,24 +350,6 @@ def init(controlnets=[],
 
       **kwargs
   )
-
-  p.script_args = tuple(script_args)
-  p.scripts = scripts.scripts_txt2img
-  p.scripts.initialize_scripts(False)
-
-  enabled_scripts = []
-
-  for index in range(len(p.scripts.scripts)):
-    script = p.scripts.scripts[index]
-
-    if script.title() == 'ControlNet':
-      p.scripts.scripts[index].args_from = cnet_args_from
-      p.scripts.scripts[index].args_to = cnet_args_to
-
-      enabled_scripts.append(p.scripts.scripts[index])
-
-  p.scripts.scripts = enabled_scripts
-  p.scripts.alwayson_scripts = enabled_scripts
 
   return p
 
@@ -410,6 +386,32 @@ def infer(controlnets=[],
   p.vcn_optimizer_lr = vcn_optimizer_lr
   p.vcn_scheduler_factor = vcn_scheduler_factor
   p.vcn_scheduler_patience = vcn_scheduler_patience
+
+  args = {}
+  script_args = {}
+
+  units = []
+  units, cnet_args_from, cnet_args_to = append_cnet_units(units, controlnets, **kwargs)
+
+  script_args = tuple(units)
+
+  p.script_args = tuple(script_args)
+  p.scripts = scripts.scripts_txt2img
+  p.scripts.initialize_scripts(False)
+
+  enabled_scripts = []
+
+  for index in range(len(p.scripts.scripts)):
+    script = p.scripts.scripts[index]
+
+    if script.title() == 'ControlNet':
+      p.scripts.scripts[index].args_from = cnet_args_from
+      p.scripts.scripts[index].args_to = cnet_args_to
+
+      enabled_scripts.append(p.scripts.scripts[index])
+
+  p.scripts.scripts = enabled_scripts
+  p.scripts.alwayson_scripts = enabled_scripts
 
   shared.state.begin()
   processed = process_images(p)
