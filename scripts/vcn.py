@@ -303,7 +303,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         self.loss_history.append(loss.item())
 
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
-          print("\n===> setting minimal loss", loss, vcn_minimal_loss)
           vcn_minimal_loss = loss
           optimal_noise = noise.clone()
 
