@@ -139,6 +139,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
 
+    self.vcn_stop_after_inefficient_steps = 20
+    self.vcn_optimizer_lr = 0.01
+
     self.sampler = sd_samplers.create_sampler(self.sampler_name, self.sd_model)
     self.sampler.orig_func = self.sampler.func
     self.sampler.func = torch.enable_grad()(lambda model, x, sigmas, *args, **kwargs: self.sampler.orig_func.__wrapped__(model, x, sigmas, *args, **kwargs))
@@ -215,27 +218,24 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     minimal_loss = None
     optimal_noise = noise
-    optimizer_state = None
-    lr = 0.01
 
     noise.requires_grad_(True)
     self.init_latent.requires_grad_(True)
-    optimizer = torch.optim.Adam([noise], lr=lr)
+    optimizer = torch.optim.Adam([noise], lr=self.optimizer_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
     for epoch in range (self.vcn_epochs):
 
       optimizer.zero_grad ()
 
-      samples_ddim = self.sampler.sample_img2img(self,
-                                            self.init_latent,
-                                            noise,
-                                            conditioning,
-                                            unconditional_conditioning,
-                                            image_conditioning=self.image_conditioning)
-
-
       with torch.enable_grad():
+        samples_ddim = self.sampler.sample_img2img(self,
+          self.init_latent,
+          noise,
+          conditioning,
+          unconditional_conditioning,
+          image_conditioning=self.image_conditioning)
+
         x_samples_ddim = [decode_first_stage(self.sd_model, samples_ddim)[0]]
         x_samples_ddim = torch.stack(x_samples_ddim).float()
         x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
@@ -260,13 +260,12 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           print("\n===> setting minimal loss", minimal_loss)
           minimal_loss = loss
           optimal_noise = noise.clone()
-          optimizer_state = optimizer.state_dict()
 
       loss.backward ()
       optimizer.step ()
       scheduler.step(loss)
 
-      if min(self.loss_history[-20:]) > minimal_loss:
+      if min(self.loss_history[-self.vcn_stop_after_inefficient_steps:]) > minimal_loss:
         break
 
       current_lr = optimizer.param_groups[0]['lr']
