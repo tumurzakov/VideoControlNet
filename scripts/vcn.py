@@ -139,6 +139,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     self.sampler = sd_samplers.create_sampler(self.sampler_name, self.sd_model)
     self.sampler.orig_func = self.sampler.func
+
+    import torch
     self.sampler.func = torch.enable_grad()(lambda model, x, sigmas, *args, **kwargs: self.sampler.orig_func.__wrapped__(model, x, sigmas, *args, **kwargs))
 
 
