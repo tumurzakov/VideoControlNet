@@ -3,6 +3,7 @@ import io
 import time
 import datetime
 import uvicorn
+import math
 import gradio as gr
 from threading import Lock
 from io import BytesIO
@@ -30,6 +31,7 @@ import piexif
 import piexif.helper
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 import importlib
 
@@ -105,7 +107,6 @@ def append_cnet_units(units=[], controlnets=[], **kwargs):
 
   return units, cnet_args_from, cnet_args_to
 
-import matplotlib.pyplot as plt
 def plot_losses(losses):
     plt.plot(losses)
     plt.xlabel('Epoch')
@@ -139,8 +140,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     self.sampler = sd_samplers.create_sampler(self.sampler_name, self.sd_model)
     self.sampler.orig_func = self.sampler.func
-
-    import torch
     self.sampler.func = torch.enable_grad()(lambda model, x, sigmas, *args, **kwargs: self.sampler.orig_func.__wrapped__(model, x, sigmas, *args, **kwargs))
 
 
@@ -321,7 +320,6 @@ def infer(controlnets=[], flows=[], previous_frames=[], vcn_epochs = 150, **kwar
 
   return processed.images
 
-import math
 
 def engrid(images):
   power = int(math.sqrt(len(images)))
