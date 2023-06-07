@@ -136,11 +136,30 @@ def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
 
 class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
+  def __init__(self,
+               vcn_flows = [],
+               vcn_previous_frames = [],
+               vcn_max_epochs = 150,
+               vcn_stop_after_inefficient_steps = 20,
+               vcn_optimizer_lr = 0.1,
+               vcn_optimizer_momentum = 0.9,
+               vcn_scheduler_factor = 0.1,
+               vcn_scheduler_patience = 5,
+               **kwargs):
+
+    super().__init__(**kwargs)
+
+    self.vcn_flows = vcn_flows
+    self.vcn_max_epochs = vcn_max_epochs
+    self.vcn_previous_frames = vcn_previous_frames
+    self.vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps
+    self.vcn_optimizer_lr = vcn_optimizer_lr
+    self.vcn_optimizer_momentum = vcn_optimizer_momentum
+    self.vcn_scheduler_factor = vcn_scheduler_factor
+    self.vcn_scheduler_patience = vcn_scheduler_patience
+
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
-
-    self.vcn_stop_after_inefficient_steps = 20
-    self.vcn_optimizer_lr = 0.01
 
     self.sampler = sd_samplers.create_sampler(self.sampler_name, self.sd_model)
     self.sampler.orig_func = self.sampler.func
@@ -155,8 +174,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                       conditioning,
                                                       unconditional_conditioning,
                                                       prompts,
-                                                      self.vcn_epochs,
-                                                      self.vcn_flows,
                                                       )
 
       if self.initial_noise_multiplier != 1.0:
@@ -203,7 +220,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       return frame
 
-  def temporal_consistency_optimization(self, noise, conditioning, unconditional_conditioning, prompts, n_epochs, flows):
+  def temporal_consistency_optimization(self, noise, conditioning, unconditional_conditioning, prompts):
     """
     Craft an optimal noise to generate temporally consistent video
     args :
@@ -221,10 +238,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     noise.requires_grad_(True)
     self.init_latent.requires_grad_(True)
-    optimizer = torch.optim.Adam([noise], lr=self.vcn_optimizer_lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
+    optimizer = torch.optim.Adam([noise], lr=self.vcn_optimizer_lr, momentum=self.vcn_optimizer_momentum)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=self.vcn_scheduler_factor, patience=self.vcn_scheduler_patience)
 
-    for epoch in range (self.vcn_epochs):
+    for epoch in range (self.vcn_max_epochs):
 
       optimizer.zero_grad ()
 
@@ -257,7 +274,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         self.loss_history.append(loss.item())
 
         if minimal_loss == None or loss < minimal_loss:
-          print("\n===> setting minimal loss", minimal_loss)
+          print("\n===> setting minimal loss", loss, minimal_loss)
           minimal_loss = loss
           optimal_noise = noise.clone()
 
@@ -269,7 +286,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         break
 
       current_lr = optimizer.param_groups[0]['lr']
-      print("\n===> loss",epoch, loss.item(), current_lr, hash_tensor(noise))
+      print("\n===> loss", epoch, loss.item(), current_lr, hash_tensor(noise))
 
     print("\n====> final", minimal_loss, hash_tensor(optimal_noise))
     return optimal_noise
@@ -287,11 +304,11 @@ def infer(controlnets=[], flows=[], previous_frames=[], vcn_epochs = 150, **kwar
   p = StableDiffusionProcessingImg2ImgVCN(
       sd_model=shared.sd_model,
       do_not_save_samples=True,
+      vcn_max_epochs=vcn_epochs,
+      vcn_flows=vcn_flows,
+      vcn_previous_frames=previous_frames,
       **kwargs
   )
-  p.vcn_epochs = vcn_epochs
-  p.vcn_flows = flows
-  p.vcn_previous_frames = previous_frames
 
   p.script_args = tuple(script_args)
   p.scripts = scripts.scripts_txt2img
