@@ -64,20 +64,21 @@ cnet_enabled = {
 cnet_models = {}
 
 def load_cnet_models():
-    global cnet_models, cnet_enabled
+  global cnet_models, cnet_enabled
 
-    cnet_external_code = importlib.import_module("extensions.sd-webui-controlnet.scripts.external_code")
-    cnet_global_state = importlib.import_module("extensions.sd-webui-controlnet.scripts.global_state")
+  cnet_global_state = importlib.import_module("extensions.sd-webui-controlnet.scripts.global_state")
 
-    cnet_global_state.update_cn_models()
-    for m in cnet_global_state.cn_models:
-      for cnet_module in cnet_enabled:
-        if cnet_enabled[cnet_module] != False and cnet_module in m:
-          cnet_enabled[cnet_module]['model'] = m
-          for cnet_module_name in cnet_enabled[cnet_module]['modules']:
-            cnet_models[cnet_module_name] = m
+  cnet_global_state.update_cn_models()
+  for m in cnet_global_state.cn_models:
+    for cnet_module in cnet_enabled:
+      if cnet_enabled[cnet_module] != False and cnet_module in m:
+        cnet_enabled[cnet_module]['model'] = m
+        for cnet_module_name in cnet_enabled[cnet_module]['modules']:
+          cnet_models[cnet_module_name] = m
 
 def append_cnet_units(units=[], controlnets=[], **kwargs):
+
+  cnet_external_code = importlib.import_module("extensions.sd-webui-controlnet.scripts.external_code")
 
   cnet_args_from = cnet_args_to = len(units)
 
