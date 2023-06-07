@@ -44,9 +44,6 @@ from tqdm.auto import trange, tqdm
 utils = importlib.import_module("repositories.k-diffusion.k_diffusion.utils")
 sampling = importlib.import_module("repositories.k-diffusion.k_diffusion.sampling")
 
-cnet_external_code = importlib.import_module("extensions.sd-webui-controlnet.scripts.external_code")
-cnet_global_state = importlib.import_module("extensions.sd-webui-controlnet.scripts.global_state")
-
 cnet_enabled = {
     'canny': {'modules':['canny'], 'model':''},
     'mlsd': {'modules':['mlsd'], 'model':''},
@@ -66,14 +63,19 @@ cnet_enabled = {
 
 cnet_models = {}
 
-cnet_global_state.update_cn_models()
-for m in cnet_global_state.cn_models:
-  for cnet_module in cnet_enabled:
-    if cnet_enabled[cnet_module] != False and cnet_module in m:
-      cnet_enabled[cnet_module]['model'] = m
-      for cnet_module_name in cnet_enabled[cnet_module]['modules']:
-        cnet_models[cnet_module_name] = m
-        print(cnet_module_name, m)
+def load_cnet_models():
+    global cnet_models, cnet_enabled
+
+    cnet_external_code = importlib.import_module("extensions.sd-webui-controlnet.scripts.external_code")
+    cnet_global_state = importlib.import_module("extensions.sd-webui-controlnet.scripts.global_state")
+
+    cnet_global_state.update_cn_models()
+    for m in cnet_global_state.cn_models:
+      for cnet_module in cnet_enabled:
+        if cnet_enabled[cnet_module] != False and cnet_module in m:
+          cnet_enabled[cnet_module]['model'] = m
+          for cnet_module_name in cnet_enabled[cnet_module]['modules']:
+            cnet_models[cnet_module_name] = m
 
 def append_cnet_units(units=[], controlnets=[], **kwargs):
 
@@ -343,6 +345,8 @@ def init(controlnets=[],
           vcn_scheduler_factor = 0.1,
           vcn_scheduler_patience = 5,
           **kwargs):
+
+  load_cnet_models()
 
   args = {}
   script_args = {}
