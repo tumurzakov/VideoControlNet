@@ -21,7 +21,7 @@ from modules.processing import StableDiffusionProcessingTxt2Img, StableDiffusion
 from modules.textual_inversion.textual_inversion import create_embedding, train_embedding
 from modules.textual_inversion.preprocess import preprocess
 from modules.hypernetworks.hypernetwork import create_hypernetwork, train_hypernetwork
-from PIL import PngImagePlugin,Image
+from PIL import PngImagePlugin,Image,ImageDraw
 from modules.sd_models import checkpoints_list, unload_model_weights, reload_model_weights
 from modules.sd_models_config import find_checkpoint_config_near_filename
 from modules.realesrgan_model import get_realesrgan_models
@@ -440,3 +440,28 @@ def get_flow(frame1, frame2):
   flow = torch.tensor(flow)
   flow = flow.requires_grad_(True)
   return flow
+
+def get_flow_field(flow,
+                   image,
+                   arrow_scale = 1,
+                   arrow_thickness = 1,
+                   ):
+
+
+  show = image.copy()
+  img = ImageDraw.Draw(show)
+
+  # Iterate over each pixel in the flow array
+  for y in range(0, flow.shape[0], 10):
+      for x in range(0, flow.shape[1], 10):
+          # Calculate the flow vector at the current pixel
+          flow_x = flow[y, x, 0]  # Flow in x-direction
+          flow_y = flow[y, x, 1]  # Flow in y-direction
+
+          # Calculate the arrow endpoints
+          arrow_start = (x, y)
+          arrow_end = (x + flow_x * arrow_scale, y + flow_y * arrow_scale)
+
+          # Draw the arrow on the image
+          img.line([arrow_start, arrow_end], fill='green', width=0)
+  return show
