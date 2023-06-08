@@ -244,7 +244,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       return frame
 
-  def flow_wapring2(self, frame, flow):
+  def flow_warping2(self, frame, flow):
       fr = frame.detach().numpy()
       fl = flow.detach().numpy()
 
