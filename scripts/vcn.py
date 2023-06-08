@@ -112,6 +112,24 @@ def append_cnet_units(units=[], controlnets=[], **kwargs):
 
   return units, cnet_args_from, cnet_args_to
 
+def append_sag_units(units=[], sag_enabled=False, **kwargs):
+    try:
+        sag_args_from = sag_args_to = len(units)
+
+        if sag_enabled:
+            from extensions.sd_webui_SAG.scripts.SAG import SAGUnit
+            units.append(
+                SAGUnit(
+                    enabled=True,
+                    scale=sag_scale,
+                )
+            )
+            sag_args_to = sag_args_to + 1
+
+        return units, sag_args_from, sag_args_to
+    except:
+      return units, 0, 0
+
 def plot_losses(losses):
     plt.plot(losses)
     plt.xlabel('Epoch')
@@ -328,6 +346,7 @@ def init():
   load_cnet_models()
 
 def infer(controlnets=[],
+          sag_enabled=False,
           vcn_noise = None,
           vcn_flows = [],
           vcn_previous_frames = [],
@@ -361,6 +380,7 @@ def infer(controlnets=[],
 
   units = []
   units, cnet_args_from, cnet_args_to = append_cnet_units(units, controlnets, **kwargs)
+  units, sag_args_from, sag_args_to = append_sag_units(units, sag_enabled, **kwargs)
 
   script_args = tuple(units)
 
@@ -376,7 +396,11 @@ def infer(controlnets=[],
     if script.title() == 'ControlNet':
       p.scripts.scripts[index].args_from = cnet_args_from
       p.scripts.scripts[index].args_to = cnet_args_to
+      enabled_scripts.append(p.scripts.scripts[index])
 
+    elif sag_enabled and script.title() == 'Self Attention Guidance':
+      p.scripts.scripts[index].args_from = sag_args_from
+      p.scripts.scripts[index].args_to = sag_args_to
       enabled_scripts.append(p.scripts.scripts[index])
 
   p.scripts.scripts = enabled_scripts
