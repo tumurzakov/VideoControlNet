@@ -244,18 +244,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       return frame
 
-  def flow_warping2(self, frame, flow):
-      fr = frame.detach().numpy()
-      fl = flow.detach().numpy()
-
-      # Convert the flow to a displacement map
-      displacement_map = np.zeros_like(f)
-      displacement_map[..., 0] = fl[..., 0] + np.arange(fr.shape[1])
-      displacement_map[..., 1] = fl[..., 1] + np.arange(fr.shape[0])[:, np.newaxis]
-
-      # Subtract the flow from frame2 to get frame1
-      reconstructed = cv2.remap(fr, displacement_map, None, cv2.INTER_LINEAR)
-
   def temporal_consistency_optimization(self,
                                         noise,
                                         conditioning,
@@ -307,7 +295,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
-        warped = self.flow_warping2 ( x_sample , self.vcn_flows[0])
+        warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
         loss = []
 
