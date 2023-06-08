@@ -112,7 +112,7 @@ def append_cnet_units(units=[], controlnets=[], **kwargs):
 
   return units, cnet_args_from, cnet_args_to
 
-def append_sag_units(units=[], sag_enabled=False, **kwargs):
+def append_sag_units(units=[], sag_enabled=False, sag_scale=0.75, sag_mask_threshold=1.0, **kwargs):
     try:
         sag_args_from = sag_args_to = len(units)
 
@@ -122,6 +122,7 @@ def append_sag_units(units=[], sag_enabled=False, **kwargs):
                 SAGUnit(
                     enabled=True,
                     scale=sag_scale,
+                    mask_threshold=sag_mask_threshold,
                 )
             )
             sag_args_to = sag_args_to + 1
@@ -129,19 +130,6 @@ def append_sag_units(units=[], sag_enabled=False, **kwargs):
         return units, sag_args_from, sag_args_to
     except:
       return units, 0, 0
-
-def plot_losses(losses):
-    plt.plot(losses)
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Loss Over Time')
-    plt.show()
-
-def hash_tensor(tensor):
-    tensor_np = tensor.detach().cpu().numpy()
-    tensor_bytes = tensor_np.tobytes()
-    hash_value = hashlib.sha256(tensor_bytes).hexdigest()
-    return hash_value
 
 def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
   if predict_cids:
@@ -495,3 +483,16 @@ def get_flow_field(flow,
           # Draw the arrow on the image
           img.line([arrow_start, arrow_end], fill='green', width=0)
   return show
+
+def plot_losses(losses):
+    plt.plot(losses)
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Loss Over Time')
+    plt.show()
+
+def hash_tensor(tensor):
+    tensor_np = tensor.detach().cpu().numpy()
+    tensor_bytes = tensor_np.tobytes()
+    hash_value = hashlib.sha256(tensor_bytes).hexdigest()
+    return hash_value
