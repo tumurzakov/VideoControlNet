@@ -149,6 +149,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_optimizer_lr = 0.01,
                vcn_scheduler_factor = 0.1,
                vcn_scheduler_patience = 5,
+               vcn_sample_steps = 10,
                **kwargs):
 
     super().__init__(**kwargs)
@@ -160,6 +161,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_optimizer_lr = vcn_optimizer_lr
     self.vcn_scheduler_factor = vcn_scheduler_factor
     self.vcn_scheduler_patience = vcn_scheduler_patience
+    self.vcn_sample_steps = vcn_sample_steps
     self.vcn_noise = None
 
   def init(self, all_prompts, all_seeds, all_subseeds):
@@ -280,7 +282,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           noise,
           conditioning,
           unconditional_conditioning,
-          image_conditioning=self.image_conditioning)
+          image_conditioning=self.image_conditioning,
+          steps=self.vcn_sample_steps,
+          )
 
         x_samples_ddim = [decode_first_stage(self.sd_model, samples_ddim)[0]]
         x_samples_ddim = torch.stack(x_samples_ddim).float()
@@ -332,6 +336,7 @@ def infer(controlnets=[],
           vcn_optimizer_lr = 0.01,
           vcn_scheduler_factor = 0.1,
           vcn_scheduler_patience = 5,
+          vcn_sample_steps = 10,
           **kwargs):
 
   p = StableDiffusionProcessingImg2ImgVCN(
@@ -346,6 +351,7 @@ def infer(controlnets=[],
       vcn_optimizer_lr = vcn_optimizer_lr,
       vcn_scheduler_factor = vcn_scheduler_factor,
       vcn_scheduler_patience = vcn_scheduler_patience,
+      vcn_sample_steps = vcn_sample_steps,
 
       **kwargs
   )
