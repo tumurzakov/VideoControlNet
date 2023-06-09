@@ -351,7 +351,7 @@ def infer(controlnets=[],
       do_not_save_samples=True,
 
       vcn_noise = None,
-      vcn_flows = vcn_flows,
+      vcn_flows = vcn_flows.cuda(),
       vcn_max_epochs = vcn_max_epochs,
       vcn_previous_frames = vcn_previous_frames,
       vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps,
