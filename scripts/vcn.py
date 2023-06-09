@@ -170,6 +170,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_sample_steps = vcn_sample_steps
     self.vcn_noise = None
 
+    for flow in vcn_flows:
+        flow.cuda()
+
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
 
@@ -351,7 +354,7 @@ def infer(controlnets=[],
       do_not_save_samples=True,
 
       vcn_noise = None,
-      vcn_flows = vcn_flows.cuda(),
+      vcn_flows = vcn_flows,
       vcn_max_epochs = vcn_max_epochs,
       vcn_previous_frames = vcn_previous_frames,
       vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps,
