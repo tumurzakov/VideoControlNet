@@ -132,7 +132,6 @@ def append_sag_units(units=[], sag_enabled=False, sag_scale=0.75, sag_mask_thres
       return units, 0, 0
 
 def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
-  print("\n===>z", z.device)
   if predict_cids:
       if z.dim() == 4:
           z = torch.argmax(z.exp(), dim=1).long()
@@ -143,7 +142,6 @@ def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
 
   with torch.enable_grad():
     d = self.first_stage_model.decode(z)
-    print("\n===>d", d.device)
     return d
 
 class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
@@ -272,7 +270,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     """
     self.loss_history = []
 
-    print("\n===>noise", noise.device)
     vcn_minimal_loss = None
     optimal_noise = noise
 
@@ -297,46 +294,30 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           image_conditioning=self.image_conditioning,
           steps=self.vcn_sample_steps,
           )
-        print("\n===>samples_ddim", samples_ddim.device)
 
         x_samples_ddim = [decode_first_stage(self.sd_model, samples_ddim)[0]]
         x_samples_ddim = torch.stack(x_samples_ddim).float()
         x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
-        print("\n===>x_samples_ddim", x_samples_ddim.device)
 
         x_sample = x_samples_ddim[0] * 255.0
         x_sample = x_sample.permute(1, 2, 0)
-        print("\n===>x_sample", x_sample.device)
 
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
-        print("\n===>ref", ref.device)
 
         warped = self.flow_warping ( x_sample , self.vcn_flows[0])
-        print("\n===>sample, flow, warped", x_sample.device, self.vcn_flows[0].device, warped.device)
 
         loss = []
 
         err = torch . where ( warped != 0 , warped - ref , 0) ** 2
-        print("\n===>err", err.device)
 
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
         loss = sum ( loss )/ len ( loss )
-        print("\n===>loss", loss.device)
         self.loss_history.append(loss.item())
 
-        print("\n===>noise", noise.device)
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
           vcn_minimal_loss = loss
           optimal_noise = noise.clone()
-          print("\n===>optimal_noise", optimal_noise.device)
-
-      print("\n===>loss", loss.device)
-
-      import gc
-      for obj in gc.get_objects():
-        if torch.is_tensor(obj) and obj.device.type == 'cpu' and obj.grad_fn != None:
-          obj.to('cuda')
 
       loss.backward ()
       optimizer.step ()
