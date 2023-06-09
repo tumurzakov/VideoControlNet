@@ -206,7 +206,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                      conditioning,
                                                      unconditional_conditioning,
                                                      prompts,
-                                                     vcn_max_epochs=self.vcn_max_epochs,
                                                      vcn_optimizer_lr=self.vcn_optimizer_lr*0.1,
                                                      vcn_max_epochs=20,
                                                      )
@@ -215,7 +214,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                      conditioning,
                                                      unconditional_conditioning,
                                                      prompts,
-                                                     vcn_max_epochs=self.vcn_max_epochs,
                                                      vcn_optimizer_lr=self.vcn_optimizer_lr*0.01,
                                                      vcn_max_epochs=20,
                                                      )
