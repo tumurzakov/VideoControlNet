@@ -160,7 +160,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     super().__init__(**kwargs)
 
-    self.vcn_flows = vcn_flows
+    self.vcn_flows = []
+    for flow in vcn_flows:
+        self.vcn_flows.append(flow.cuda())
+
     self.vcn_max_epochs = vcn_max_epochs
     self.vcn_previous_frames = vcn_previous_frames
     self.vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps
@@ -169,9 +172,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_scheduler_patience = vcn_scheduler_patience
     self.vcn_sample_steps = vcn_sample_steps
     self.vcn_noise = None
-
-    for flow in vcn_flows:
-        flow.cuda()
 
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
