@@ -338,7 +338,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       except Exception as e:
           import gc
           for obj in gc.get_objects():
-            if torch.is_tensor(obj) and obj.device == 'cpu':
+            if torch.is_tensor(obj) and obj.device.type == 'cpu':
                print("\n===>tensor ", obj)
           raise e
       optimizer.step ()
