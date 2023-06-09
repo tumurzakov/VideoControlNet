@@ -335,7 +335,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       import gc
       for obj in gc.get_objects():
-        if torch.is_tensor(obj):
+        if torch.is_tensor(obj) and obj.device == 'cpu':
            print("\n===>tensor ", obj)
 
       loss.backward ()
