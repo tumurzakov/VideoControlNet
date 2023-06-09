@@ -159,7 +159,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                **kwargs):
 
     super().__init__(**kwargs)
-    print("\n====>sd_model", p.sd_model.device)
 
     self.vcn_flows = []
     for flow in vcn_flows:
@@ -270,6 +269,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     prompts : textual conditioning strings
     """
     self.loss_history = []
+
+    print("\n====>sd_model", self.sd_model.device)
 
     vcn_minimal_loss = None
     optimal_noise = noise
