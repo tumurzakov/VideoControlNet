@@ -303,16 +303,20 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         x_sample = x_sample.permute(1, 2, 0)
 
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
+        print("\n===>ref", ref.device)
 
         warped = self.flow_warping ( x_sample , self.vcn_flows[0])
+        print("\n===>sample, flow, warped", x_sample.device, self.vcn_flows[0].device, warped.device)
 
         loss = []
 
         err = torch . where ( warped != 0 , warped - ref , 0) ** 2
+        print("\n===>sample, flow, warped", err.device)
 
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
         loss = sum ( loss )/ len ( loss )
+        print("\n===>loss", loss.device)
         self.loss_history.append(loss.item())
 
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
