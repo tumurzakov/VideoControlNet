@@ -233,7 +233,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       # create a matrix where each entry is its coordinate
       s = flow . shape [:2]
       m = np . array ([ i for i in np . ndindex (* s )])
-      meshgrid = torch . from_numpy ( m . reshape (* s , len ( s )))
+      meshgrid = torch.from_numpy(m . reshape (* s , len ( s )), device='cuda')
 
       # find the coordinates that the flows point to
       dest = flow + meshgrid
@@ -304,8 +304,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
-        print("\n====> flow device", self.vcn_flows[0].device)
-        warped = self.flow_warping ( x_sample , self.vcn_flows[0].to('cuda'))
+        warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
         loss = []
 
