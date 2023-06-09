@@ -233,7 +233,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       # create a matrix where each entry is its coordinate
       s = flow . shape [:2]
       m = np . array ([ i for i in np . ndindex (* s )])
-      meshgrid = torch.from_numpy(m . reshape (* s , len ( s )), device='cuda')
+      meshgrid = torch.from_numpy(m . reshape (* s , len ( s ))).to('cuda')
 
       # find the coordinates that the flows point to
       dest = flow + meshgrid
