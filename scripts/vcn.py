@@ -159,6 +159,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                **kwargs):
 
     super().__init__(**kwargs)
+    print("\n====>sd_model", p.sd_model.device)
 
     self.vcn_flows = []
     for flow in vcn_flows:
