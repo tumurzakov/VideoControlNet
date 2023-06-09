@@ -239,8 +239,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       dest = flow + meshgrid
 
       # discard out - of - frame flows
-      valid_mask = (( dest >= 0) &
-      ( dest < torch . tensor ( dest . shape [:2]) - 1)). all ( -1)
+      valid_mask = ((dest >= 0) &
+        (dest < torch.tensor(dest.shape [:2], device='cuda') - 1)).all(-1)
 
       v_src = meshgrid [ valid_mask ]
 
