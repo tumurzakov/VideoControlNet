@@ -270,8 +270,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     """
     self.loss_history = []
 
-    print("\n====>sd_model", self.sd_model.device)
-
     vcn_minimal_loss = None
     optimal_noise = noise
 
