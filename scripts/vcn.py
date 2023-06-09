@@ -333,14 +333,12 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       print("\n===>loss", loss.device)
 
-      try:
-        loss.backward ()
-      except Exception as e:
-          import gc
-          for obj in gc.get_objects():
-            if torch.is_tensor(obj) and obj.device.type == 'cpu':
-               print("\n===>tensor ", obj)
-          raise e
+      import gc
+      for obj in gc.get_objects():
+        if torch.is_tensor(obj) and obj.device.type == 'cpu' and obj.grad_fn != None:
+          obj.to('cuda')
+
+      loss.backward ()
       optimizer.step ()
       scheduler.step(loss)
 
