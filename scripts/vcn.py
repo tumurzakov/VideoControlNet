@@ -293,7 +293,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     noise.requires_grad_(True)
     self.init_latent.requires_grad_(True)
-    optimizer = torch.optim.AdamW([noise], lr=self.vcn_optimizer_lr)
+    optimizer = torch.optim.AdamW([noise], lr=vcn_optimizer_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                            mode='min',
                                                            factor=self.vcn_scheduler_factor,
