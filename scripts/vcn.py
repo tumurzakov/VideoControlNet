@@ -333,12 +333,14 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       print("\n===>loss", loss.device)
 
-      import gc
-      for obj in gc.get_objects():
-        if torch.is_tensor(obj) and obj.device == 'cpu':
-           print("\n===>tensor ", obj)
-
-      loss.backward ()
+      try:
+        loss.backward ()
+      except:
+          import gc
+          for obj in gc.get_objects():
+            if torch.is_tensor(obj):
+               print("\n===>tensor ", obj.device)
+          break
       optimizer.step ()
       scheduler.step(loss)
 
