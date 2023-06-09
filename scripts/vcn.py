@@ -270,6 +270,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     """
     self.loss_history = []
 
+    print("\n===>noise", noise.device)
     vcn_minimal_loss = None
     optimal_noise = noise
 
@@ -311,7 +312,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         loss = []
 
         err = torch . where ( warped != 0 , warped - ref , 0) ** 2
-        print("\n===>sample, flow, warped", err.device)
+        print("\n===>err", err.device)
 
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
@@ -319,9 +320,11 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         print("\n===>loss", loss.device)
         self.loss_history.append(loss.item())
 
+        print("\n===>noise", noise.device)
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
           vcn_minimal_loss = loss
           optimal_noise = noise.clone()
+          print("\n===>optimal_noise", optimal_noise.device)
 
       loss.backward ()
       optimizer.step ()
@@ -462,7 +465,7 @@ def get_flow(frame1, frame2):
       poly_n=7,
       poly_sigma=1.5,
       flags=0)
-  flow = torch.tensor(flow)
+  flow = torch.tensor(flow).to('cuda')
   flow = flow.requires_grad_(True)
   return flow
 
