@@ -162,7 +162,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     self.vcn_flows = []
     for flow in vcn_flows:
-        self.vcn_flows.append(flow.cuda())
+        self.vcn_flows.append(flow.to('cuda'))
 
     self.vcn_max_epochs = vcn_max_epochs
     self.vcn_previous_frames = vcn_previous_frames
@@ -304,7 +304,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
-        warped = self.flow_warping ( x_sample , self.vcn_flows[0])
+        print("\n====> flow device", self.vcn_flows[0].device)
+        warped = self.flow_warping ( x_sample , self.vcn_flows[0].to('cuda'))
 
         loss = []
 
