@@ -202,6 +202,24 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                      vcn_optimizer_lr=self.vcn_optimizer_lr,
                                                      )
 
+          x = self.temporal_consistency_optimization(x.detach(),
+                                                     conditioning,
+                                                     unconditional_conditioning,
+                                                     prompts,
+                                                     vcn_max_epochs=self.vcn_max_epochs,
+                                                     vcn_optimizer_lr=self.vcn_optimizer_lr*0.1,
+                                                     vcn_max_epochs=20,
+                                                     )
+
+          x = self.temporal_consistency_optimization(x.detach(),
+                                                     conditioning,
+                                                     unconditional_conditioning,
+                                                     prompts,
+                                                     vcn_max_epochs=self.vcn_max_epochs,
+                                                     vcn_optimizer_lr=self.vcn_optimizer_lr*0.01,
+                                                     vcn_max_epochs=20,
+                                                     )
+
           self.vcn_noise = x
 
       if self.initial_noise_multiplier != 1.0:
@@ -269,6 +287,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     prompts : textual conditioning strings
     """
     self.loss_history = []
+
+    self.sd_model.eval()
 
     vcn_minimal_loss = None
     optimal_noise = noise
