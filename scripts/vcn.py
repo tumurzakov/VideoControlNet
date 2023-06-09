@@ -332,6 +332,11 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           print("\n===>optimal_noise", optimal_noise.device)
 
       print("\n===>loss", loss.device)
+
+      for obj in gc.get_objects():
+        if torch.is_tensor(obj):
+           print("\n===>tensor ", obj)
+
       loss.backward ()
       optimizer.step ()
       scheduler.step(loss)
