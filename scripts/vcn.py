@@ -51,8 +51,11 @@ import torchvision.transforms.functional as F
 raft_model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to('cuda')
 raft_model = raft_model.eval()
 
-from fastflownet import FastFlowNet
-ffn_model = FastFlowNet().cuda().eval()
+try:
+    from fastflownet import FastFlowNet
+    ffn_model = FastFlowNet().cuda().eval()
+except:
+    pass
 
 cnet_enabled = {
     'canny': {'modules':['canny'], 'model':''},
