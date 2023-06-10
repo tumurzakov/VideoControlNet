@@ -332,7 +332,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         loss = []
 
         #err = torch . where ( warped != 0 , warped - ref , 0) ** 2
-        err = torch . where ( warped != 0 , self.vcn_flows[0] - flow , 0) ** 2
+        err = torch . where ( flow != 0 , self.vcn_flows[0] - flow , 0) ** 2
 
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
