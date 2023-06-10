@@ -322,6 +322,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         #ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
+        image_array = x_sample.cpu().detach().numpy()
         candidate = Image.fromarray(image_array.astype(np.uint8))
         previous = self.vcn_previous_frames[0]
         flow = get_flow(candidate, previous)
