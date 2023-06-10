@@ -510,7 +510,9 @@ def get_flow_fastflownet(frame1, frame2):
 
     img1 = frame1.float().permute(2, 0, 1).unsqueeze(0)/255.0
     img2 = frame2.float().permute(2, 0, 1).unsqueeze(0)/255.0
+    print("\n===>img1, img2", img1.requires_grad, img2.requires_grad)
     img1, img2, _ = centralize(img1, img2)
+    print("\n===>img1, img2", img1.requires_grad, img2.requires_grad)
 
     height, width = img1.shape[-2:]
     orig_size = (int(height), int(width))
@@ -525,11 +527,19 @@ def get_flow_fastflownet(frame1, frame2):
     else:
         input_size = orig_size
 
+    print("\n===>img1, img2", img1.requires_grad, img2.requires_grad)
+
     input_t = torch.cat([img2, img1], 1).cuda()
+
+    print("\n===>input_t", input_t.requires_grad)
 
     output = ffn_model(input_t).data
 
+    print("\n===>output", output.requires_grad)
+
     flow = div_flow * F.interpolate(output, size=input_size, mode='bilinear', align_corners=False)
+
+    print("\n===>flow", flow.requires_grad)
 
     if input_size != orig_size:
         scale_h = orig_size[0] / input_size[0]
@@ -538,7 +548,15 @@ def get_flow_fastflownet(frame1, frame2):
         flow[:, 0, :, :] *= scale_w
         flow[:, 1, :, :] *= scale_h
 
-    return flow[0].permute(2,1,0)
+    print("\n===>flow", flow.requires_grad)
+
+    flow = flow[0].permute(1,2,0)
+    print("\n===>flow", flow.requires_grad)
+
+    flow.requires_grad_(True)
+    print("\n===>flow", flow.requires_grad)
+
+    return flow
 
 def get_flow(frame1, frame2):
   f1 = frame1.convert('L')
