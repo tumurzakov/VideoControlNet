@@ -306,7 +306,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                            factor=self.vcn_scheduler_factor,
                                                            patience=self.vcn_scheduler_patience)
 
-    for epoch in range (self.vcn_max_epochs):
+    for epoch in range (vcn_max_epochs):
 
       optimizer.zero_grad ()
 
