@@ -337,7 +337,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         flow = get_flow_tv(x_sample, ref)
 
-        mutated = nn.Parameter(x_sample[:,:,2].clone(), requires_grad=True)
+        mutated = torch.nn.Parameter(x_sample[:,:,2].clone(), requires_grad=True)
         mutated[:, :, :2].data.copy_(flow.data)
 
         #warped = self.flow_warping ( x_sample , self.vcn_flows[0])
@@ -504,7 +504,6 @@ def get_flow_fastflownet(frame1, frame2):
     #!pip install FastFlowNet
 
     import torch.nn.functional as F
-    import torch.nn as nn
 
     div_flow = 20.0
     div_size = 64
