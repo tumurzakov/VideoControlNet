@@ -332,7 +332,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
-        flow = get_flow_ffn(x_sample, ref)
+        flow = get_flow_fastflownet(x_sample, ref)
 
         #warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
