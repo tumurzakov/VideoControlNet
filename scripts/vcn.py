@@ -533,12 +533,8 @@ def get_flow_fastflownet(frame1, frame2):
 
     print("\n===>input_t", input_t.requires_grad)
 
-    result = ffn_model(input_t)
-    print("\n===>result", result.requires_grad, result)
-
-    output = result.data
-
-    print("\n===>output", output.requires_grad)
+    output = ffn_model(input_t)
+    print("\n===>output", result.requires_grad)
 
     flow = div_flow * F.interpolate(output, size=input_size, mode='bilinear', align_corners=False)
 
