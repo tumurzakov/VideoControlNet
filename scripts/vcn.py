@@ -508,8 +508,8 @@ def get_flow_fastflownet(frame1, frame2):
         return img1 - rgb_mean, img2 - rgb_mean, rgb_mean
 
 
-    img1 = torch.from_numpy(np.array(frame1)).float().permute(2, 0, 1).unsqueeze(0)/255.0
-    img2 = torch.from_numpy(np.array(frame2)).float().permute(2, 0, 1).unsqueeze(0)/255.0
+    img1 = frame1.float().permute(2, 0, 1).unsqueeze(0)/255.0
+    img2 = frame2.float().permute(2, 0, 1).unsqueeze(0)/255.0
     img1, img2, _ = centralize(img1, img2)
 
     height, width = img1.shape[-2:]
