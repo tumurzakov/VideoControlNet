@@ -538,7 +538,7 @@ def get_flow_fastflownet(frame1, frame2):
         flow[:, 0, :, :] *= scale_w
         flow[:, 1, :, :] *= scale_h
 
-    return flow[0]
+    return flow[0].permute(2,1,0)
 
 def get_flow(frame1, frame2):
   f1 = frame1.convert('L')
