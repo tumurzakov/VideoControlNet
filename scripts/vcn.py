@@ -210,7 +210,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
           power = 0
           for epochs in max_epochs:
-              x = self.temporal_consistency_optimization(x,
+              x = self.temporal_consistency_optimization(x.detach(),
                                                          conditioning,
                                                          unconditional_conditioning,
                                                          prompts,
