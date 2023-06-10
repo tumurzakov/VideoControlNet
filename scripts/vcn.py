@@ -487,9 +487,6 @@ def get_flow_tv(frame1, frame2):
     list_of_flows = raft_model(f2.to(device), f1.to(device))
     flow = list_of_flows[-1].squeeze(0).permute(1,2,0)
 
-    flow = torch.tensor(flow).to('cuda')
-    flow = flow.requires_grad_(True)
-
     return flow
 
 def get_flow(frame1, frame2):
