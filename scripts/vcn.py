@@ -48,7 +48,7 @@ from torchvision.models.optical_flow import raft_large
 from torchvision.models.optical_flow import Raft_Large_Weights
 import torchvision.transforms.functional as F
 
-raft_model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to(device)
+raft_model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to('cuda')
 raft_model = raft_model.eval()
 
 cnet_enabled = {
