@@ -325,7 +325,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         image_array = x_sample.cpu().detach().numpy()
         candidate = Image.fromarray(image_array.astype(np.uint8))
         previous = self.vcn_previous_frames[0]
-        flow = get_flow(candidate, previous)
+        flow = get_flow_tv(candidate, previous)
 
         #warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
@@ -460,6 +460,36 @@ def degrid(grid, power):
       img = grid.crop((x*dimx, y*dimy, (x+1)*dimx, (y+1)*dimy))
       images.append(img)
   return images
+
+def get_flow_tv(frame1, frame2):
+    from torchvision.models.optical_flow import raft_large
+    from torchvision.models.optical_flow import Raft_Large_Weights
+    import torchvision.transforms.functional as F
+
+    # If you can, run this example on a GPU, it will be a lot faster.
+    device = "cuda"
+
+    model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to(device)
+    model = model.eval()
+
+    f1 = torch.Tensor(np.array(frame1.convert('RGB'))).permute(2, 0, 1)/255
+    f2 = torch.Tensor(np.array(frame2.convert('RGB'))).permute(2, 0, 1)/255
+
+    f1 = torch.stack([f1])
+    f2 = torch.stack([f2])
+
+    f1 = F.resize(f1, size=[264, 480], antialias=False)
+    f2 = F.resize(f2, size=[264, 480], antialias=False)
+
+    weights = Raft_Large_Weights.DEFAULT
+    transforms = weights.transforms()
+
+    f1, f2 = transforms(f1, f2)
+
+    list_of_flows = model(f2.to(device), f1.to(device))
+    flow = list_of_flows[-1].squeeze(0).permute(1,2,0)
+
+    return flow
 
 def get_flow(frame1, frame2):
   f1 = frame1.convert('L')
