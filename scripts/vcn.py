@@ -477,8 +477,10 @@ def get_flow_tv(frame1, frame2):
     f1 = torch.stack([f1])
     f2 = torch.stack([f2])
 
-    f1 = F.resize(f1, size=[frame1.height, frame1.width], antialias=False)
-    f2 = F.resize(f2, size=[frame1.height, frame1.width], antialias=False)
+    print("\n====>", frame1.shape)
+
+    f1 = F.resize(f1, size=[frame1.shape[1], frame1.shape[0]], antialias=False)
+    f2 = F.resize(f2, size=[frame2.shape[1], frame2.shape[0]], antialias=False)
 
     weights = Raft_Large_Weights.DEFAULT
     transforms = weights.transforms()
