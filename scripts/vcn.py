@@ -332,7 +332,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
-        flow = get_flow_fastflownet(x_sample, ref)
+        flow = get_flow_tv(x_sample, ref)
 
         mutated = nn.Parameter(x_sample[:,:,2].clone(), requires_grad=True)
         mutated[:, :, :2].data.copy_(flow.data)
