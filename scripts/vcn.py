@@ -160,6 +160,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_max_epochs = 50,
                vcn_stop_after_inefficient_steps = 20,
                vcn_optimizer_lr = 0.01,
+               vcn_optimizer_epoch_scale = 0.1,
                vcn_scheduler_factor = 0.1,
                vcn_scheduler_patience = 5,
                vcn_sample_steps = 10,
@@ -175,6 +176,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_previous_frames = vcn_previous_frames
     self.vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps
     self.vcn_optimizer_lr = vcn_optimizer_lr
+    self.vcn_optimizer_epoch_scale = vcn_optimizer_epoch_scale
     self.vcn_scheduler_factor = vcn_scheduler_factor
     self.vcn_scheduler_patience = vcn_scheduler_patience
     self.vcn_sample_steps = vcn_sample_steps
@@ -201,29 +203,21 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                     p=self)
 
       if self.vcn_flows != None and len(self.vcn_flows) > 0:
-          x = self.temporal_consistency_optimization(x,
-                                                     conditioning,
-                                                     unconditional_conditioning,
-                                                     prompts,
-                                                     vcn_max_epochs=self.vcn_max_epochs,
-                                                     vcn_optimizer_lr=self.vcn_optimizer_lr,
-                                                     )
 
-          x = self.temporal_consistency_optimization(x.detach(),
-                                                     conditioning,
-                                                     unconditional_conditioning,
-                                                     prompts,
-                                                     vcn_optimizer_lr=self.vcn_optimizer_lr*0.1,
-                                                     vcn_max_epochs=20,
-                                                     )
+          max_epochs = [self.vcn_max_epochs]
+          if isinstance(self.vcn_max_epochs, list):
+              max_epochs = self.vcn_max_epochs
 
-          x = self.temporal_consistency_optimization(x.detach(),
-                                                     conditioning,
-                                                     unconditional_conditioning,
-                                                     prompts,
-                                                     vcn_optimizer_lr=self.vcn_optimizer_lr*0.01,
-                                                     vcn_max_epochs=20,
-                                                     )
+          power = 0
+          for epochs in max_epochs:
+              x = self.temporal_consistency_optimization(x,
+                                                         conditioning,
+                                                         unconditional_conditioning,
+                                                         prompts,
+                                                         vcn_max_epochs=epochs,
+                                                         vcn_optimizer_lr=self.vcn_optimizer_lr * self.vcn_optimizer_epoch_scale ** power,
+                                                         )
+              power = power + 1
 
           self.vcn_noise = x
 
