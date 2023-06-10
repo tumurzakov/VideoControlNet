@@ -150,7 +150,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_noise = None,
                vcn_flows = [],
                vcn_previous_frames = [],
-               vcn_max_epochs = 150,
+               vcn_max_epochs = 50,
                vcn_stop_after_inefficient_steps = 20,
                vcn_optimizer_lr = 0.01,
                vcn_scheduler_factor = 0.1,
@@ -274,7 +274,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                         conditioning,
                                         unconditional_conditioning,
                                         prompts,
-                                        vcn_max_epochs=150,
+                                        vcn_max_epochs=50,
                                         vcn_optimizer_lr=0.01):
     """
     Craft an optimal noise to generate temporally consistent video
@@ -320,13 +320,16 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         x_sample = x_samples_ddim[0] * 255.0
         x_sample = x_sample.permute(1, 2, 0)
 
-        ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
+        #ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
-        warped = self.flow_warping ( x_sample , self.vcn_flows[0])
+        flow = get_flow(Image.fromarray(x_sample.detach().numpy()), self.vcn_previous_frames[0])
+
+        #warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
         loss = []
 
-        err = torch . where ( warped != 0 , warped - ref , 0) ** 2
+        #err = torch . where ( warped != 0 , warped - ref , 0) ** 2
+        err = torch . where ( warped != 0 , self.vcn_flows[0] - flow , 0) ** 2
 
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
@@ -359,7 +362,7 @@ def infer(controlnets=[],
           vcn_noise = None,
           vcn_flows = [],
           vcn_previous_frames = [],
-          vcn_max_epochs = 150,
+          vcn_max_epochs = 50,
           vcn_stop_after_inefficient_steps = 20,
           vcn_optimizer_lr = 0.01,
           vcn_scheduler_factor = 0.1,
