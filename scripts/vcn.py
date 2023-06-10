@@ -533,8 +533,10 @@ def get_flow_fastflownet(frame1, frame2):
 
     print("\n===>input_t", input_t.requires_grad)
 
-    output = ffn_model(input_t).data
-    output.requires_grad_(True)
+    result = ffn_model(input_t)
+    print("\n===>result", result.requires_grad, result)
+
+    output = result.data
 
     print("\n===>output", output.requires_grad)
 
