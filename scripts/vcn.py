@@ -334,12 +334,15 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         flow = get_flow_fastflownet(x_sample, ref)
 
+        mutated = nn.Parameter(x_sample[:,:,2].clone(), requires_grad=True)
+        mutated[:, :, :2].data.copy_(flow.data)
+
         #warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
         loss = []
 
         #err = torch . where ( warped != 0 , warped - ref , 0) ** 2
-        err = torch . where ( flow != 0 , self.vcn_flows[0] - flow , 0) ** 2
+        err = torch . where ( flow != 0 , self.vcn_flows[0] - mutated , 0) ** 2
 
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
@@ -530,9 +533,6 @@ def get_flow_fastflownet(frame1, frame2):
 
     output = ffn_model(input_t).data
 
-    mutated = nn.Parameter(frame1[:,:,2].clone(), requires_grad=True)
-    mutated[:, :, :2].data.copy_(output.data)
-
     flow = div_flow * F.interpolate(output, size=input_size, mode='bilinear', align_corners=False)
 
     if input_size != orig_size:
@@ -543,8 +543,6 @@ def get_flow_fastflownet(frame1, frame2):
         flow[:, 1, :, :] *= scale_h
 
     flow = flow[0].permute(1,2,0)
-    flow.requires_grad_(True)
-
     return flow
 
 def get_flow(frame1, frame2):
