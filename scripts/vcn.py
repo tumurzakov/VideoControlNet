@@ -533,7 +533,8 @@ def get_flow_fastflownet(frame1, frame2):
 
     print("\n===>input_t", input_t.requires_grad)
 
-    output = ffn_model(input_t).data
+    with torch.enable_grad():
+        output = ffn_model(input_t).data
 
     print("\n===>output", output.requires_grad)
 
