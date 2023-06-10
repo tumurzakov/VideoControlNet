@@ -479,8 +479,8 @@ def get_flow_tv(frame1, frame2):
 
     print("\n====>", frame1.shape)
 
-    f1 = F.resize(f1, size=[frame1.shape[1], frame1.shape[0]], antialias=False)
-    f2 = F.resize(f2, size=[frame2.shape[1], frame2.shape[0]], antialias=False)
+    f1 = F.resize(f1, size=[frame1.shape[0], frame1.shape[1]], antialias=False)
+    f2 = F.resize(f2, size=[frame2.shape[0], frame2.shape[1]], antialias=False)
 
     weights = Raft_Large_Weights.DEFAULT
     transforms = weights.transforms()
