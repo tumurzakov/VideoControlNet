@@ -51,6 +51,9 @@ import torchvision.transforms.functional as F
 raft_model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to('cuda')
 raft_model = raft_model.eval()
 
+from fastflownet import FastFlowNet
+ffn_model = FastFlowNet().cuda().eval()
+
 cnet_enabled = {
     'canny': {'modules':['canny'], 'model':''},
     'mlsd': {'modules':['mlsd'], 'model':''},
@@ -329,7 +332,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
-        flow = get_flow_tv(x_sample, ref)
+        flow = get_flow_ffn(x_sample, ref)
 
         #warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
@@ -477,8 +480,6 @@ def get_flow_tv(frame1, frame2):
     f1 = torch.stack([f1])
     f2 = torch.stack([f2])
 
-    print("\n====>", frame1.shape)
-
     f1 = F.resize(f1, size=[frame1.shape[0], frame1.shape[1]], antialias=False)
     f2 = F.resize(f2, size=[frame2.shape[0], frame2.shape[1]], antialias=False)
 
@@ -491,6 +492,53 @@ def get_flow_tv(frame1, frame2):
     flow = list_of_flows[-1].squeeze(0).permute(1,2,0)
 
     return flow
+
+def get_flow_fastflownet(frame1, frame2):
+    global ffn_model
+    #!pip install FastFlowNet
+
+    import torch.nn.functional as F
+
+    div_flow = 20.0
+    div_size = 64
+
+    def centralize(img1, img2):
+        b, c, h, w = img1.shape
+        rgb_mean = torch.cat([img1, img2], dim=2).view(b, c, -1).mean(2).view(b, c, 1, 1)
+        return img1 - rgb_mean, img2 - rgb_mean, rgb_mean
+
+
+    img1 = torch.from_numpy(np.array(frame1)).float().permute(2, 0, 1).unsqueeze(0)/255.0
+    img2 = torch.from_numpy(np.array(frame2)).float().permute(2, 0, 1).unsqueeze(0)/255.0
+    img1, img2, _ = centralize(img1, img2)
+
+    height, width = img1.shape[-2:]
+    orig_size = (int(height), int(width))
+
+    if height % div_size != 0 or width % div_size != 0:
+        input_size = (
+            int(div_size * np.ceil(height / div_size)),
+            int(div_size * np.ceil(width / div_size))
+        )
+        img1 = F.interpolate(img1, size=input_size, mode='bilinear', align_corners=False)
+        img2 = F.interpolate(img2, size=input_size, mode='bilinear', align_corners=False)
+    else:
+        input_size = orig_size
+
+    input_t = torch.cat([img2, img1], 1).cuda()
+
+    output = ffn_model(input_t).data
+
+    flow = div_flow * F.interpolate(output, size=input_size, mode='bilinear', align_corners=False)
+
+    if input_size != orig_size:
+        scale_h = orig_size[0] / input_size[0]
+        scale_w = orig_size[1] / input_size[1]
+        flow = F.interpolate(flow, size=orig_size, mode='bilinear', align_corners=False)
+        flow[:, 0, :, :] *= scale_w
+        flow[:, 1, :, :] *= scale_h
+
+    return flow[0]
 
 def get_flow(frame1, frame2):
   f1 = frame1.convert('L')
