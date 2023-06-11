@@ -184,8 +184,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_sample_steps = vcn_sample_steps
     self.vcn_noise = None
 
-    self.vcn_warp_error_scale = 1
-    self.vcn_flow_error_scale = 1
+    self.vcn_warp_error_scale = vcn_warp_error_scale
+    self.vcn_flow_error_scale = vcn_flow_error_scale
 
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
