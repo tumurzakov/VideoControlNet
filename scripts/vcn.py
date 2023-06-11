@@ -363,7 +363,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
             warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
         lineart = None
-        if self.vcn_lineart != None and self.vcn_lineart_error_scale > 0:
+        if vcn_lineart_error_scale > 0:
             lineart = get_lineart(x_sample)
 
         loss = []
