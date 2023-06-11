@@ -385,7 +385,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         err3 = 0
         if lineart != None:
-            err3 = (torch . where ( flow != 0 , self.vcn_prev_lineart - lineart , 0) ** 2).reshape(-1)
+            err3 = (torch . where ( lineart != 0 , self.vcn_prev_lineart - lineart , 0) ** 2).reshape(-1)
             err3 = torch.kthvalue(err3, int((90 / 100) * err3.numel())).values # 90%%
             print("\n===> lineart_err", err3, vcn_lineart_error_scale, err3*vcn_lineart_error_scale)
 
