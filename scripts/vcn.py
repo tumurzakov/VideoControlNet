@@ -43,7 +43,7 @@ from modules.processing import create_random_tensors, opt_C, opt_f
 from tqdm.auto import trange, tqdm
 utils = importlib.import_module("repositories.k-diffusion.k_diffusion.utils")
 sampling = importlib.import_module("repositories.k-diffusion.k_diffusion.sampling")
-lineart = importlib.import_module("extensions.sd-webui-controlnet.annotator.lineart")
+lineart = None
 
 from torchvision.models.optical_flow import raft_large
 from torchvision.models.optical_flow import Raft_Large_Weights
@@ -593,6 +593,8 @@ def get_flow_field(flow,
 
 def get_lineart(sample):
    global lineart
+   if lineart == None:
+       lineart = importlib.import_module("extensions.sd-webui-controlnet.annotator.lineart")
    return lineart.LineartDetector("sk_model.pth")(sample)
 
 def plot_losses(losses):
