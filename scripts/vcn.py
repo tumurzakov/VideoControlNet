@@ -347,11 +347,11 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         loss = []
 
         err1 = (torch . where ( warped != 0 , warped - ref , 0) ** 2)
-        err1 = torch.kthvalue(err1, int((90 / 100) * err1.numel())).values # 90%%
+        err1 = torch.kthvalue(err1.view(-1), int((90 / 100) * err1.numel())).values # 90%%
         print("\n===> warp_err", err1)
 
         err2 = (torch . where ( flow != 0 , self.vcn_flows[0] - flow , 0) ** 2)
-        err2 = torch.kthvalue(err2, int((90 / 100) * err2.numel())).values # 90%%
+        err2 = torch.kthvalue(err2.view(-1), int((90 / 100) * err2.numel())).values # 90%%
         print("\n===> flow_err", err2)
 
         err = vcn_warp_error_scale * err1 + vcn_flow_error_scale * err2
