@@ -597,10 +597,11 @@ def get_lineart(sample):
    global lineart_detector
    if lineart_detector == None:
        lineart = importlib.import_module("extensions.sd-webui-controlnet.annotator.lineart")
-       lineart_detector = lineart.LineartDetector("sk_model.pth").to('cuda')
+       lineart_detector = lineart.LineartDetector("sk_model.pth")
+       lineart_detector.device = 'cuda'
    return lineart_detector(sample)
 
-def plot_losses(losses):
+def plot_losses(losho
     plt.plot(losses)
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
