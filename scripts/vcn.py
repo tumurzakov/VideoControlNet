@@ -164,6 +164,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_scheduler_factor = 0.1,
                vcn_scheduler_patience = 5,
                vcn_sample_steps = 10,
+               vcn_warp_error_scale = 1,
+               vcn_flow_error_scale = 1,
                **kwargs):
 
     super().__init__(**kwargs)
@@ -181,6 +183,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_scheduler_patience = vcn_scheduler_patience
     self.vcn_sample_steps = vcn_sample_steps
     self.vcn_noise = None
+
+    self.vcn_warp_error_scale = 1
+    self.vcn_flow_error_scale = 1
 
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
@@ -324,12 +329,13 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
         flow = get_flow_tv(x_sample, ref)
-        #warped = self.flow_warping ( x_sample , self.vcn_flows[0])
+        warped = self.flow_warping ( x_sample , self.vcn_flows[0])
 
         loss = []
 
-        #err = torch . where ( warped != 0 , warped - ref , 0) ** 2
-        err = torch . where ( flow != 0 , self.vcn_flows[0] - flow , 0) ** 2
+        err1 = torch . where ( warped != 0 , warped - ref , 0) ** 2
+        err2 = torch . where ( flow != 0 , self.vcn_flows[0] - flow , 0) ** 2
+        err = self.vcn_warp_error_scale * err1 + self.vcn_flow_error_scale * err2
 
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
