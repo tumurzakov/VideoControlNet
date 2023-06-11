@@ -43,6 +43,7 @@ from modules.processing import create_random_tensors, opt_C, opt_f
 from tqdm.auto import trange, tqdm
 utils = importlib.import_module("repositories.k-diffusion.k_diffusion.utils")
 sampling = importlib.import_module("repositories.k-diffusion.k_diffusion.sampling")
+lineart = importlib.import_module("extensions.sd-webui-controlnet.annotator.lineart")
 
 from torchvision.models.optical_flow import raft_large
 from torchvision.models.optical_flow import Raft_Large_Weights
@@ -164,8 +165,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_scheduler_factor = 0.1,
                vcn_scheduler_patience = 5,
                vcn_sample_steps = 10,
+               vcn_lineart = None,
                vcn_warp_error_scale = 1,
                vcn_flow_error_scale = 1,
+               vcn_lineart_error_scale = 1,
                **kwargs):
 
     super().__init__(**kwargs)
@@ -186,6 +189,13 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     self.vcn_warp_error_scale = vcn_warp_error_scale
     self.vcn_flow_error_scale = vcn_flow_error_scale
+    self.vcn_lineart_error_scale = vcn_lineart_error_scale
+
+    self.vcn_lineart = vcn_lineart
+
+    self.vcn_prev_lineart = None
+    if vcn_lineart != None:
+        self.vcn_prev_lineart = get_lineart(np.array(vcn_previous_frames[0]))
 
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
@@ -221,6 +231,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           if isinstance(self.vcn_warp_error_scale, list):
               vcn_warp_error_scale = self.vcn_warp_error_scale
 
+          vcn_lineart_error_scale = [self.vcn_lineart_error_scale]
+          if isinstance(self.vcn_lineart_error_scale, list):
+              vcn_lineart_error_scale = self.vcn_lineart_error_scale
+
           power = 0
           for epochs in max_epochs:
               x = self.temporal_consistency_optimization(x.detach(),
@@ -231,6 +245,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                          vcn_optimizer_lr=self.vcn_optimizer_lr * self.vcn_optimizer_epoch_scale ** power,
                                                          vcn_flow_error_scale=vcn_flow_error_scale[power],
                                                          vcn_warp_error_scale=vcn_warp_error_scale[power],
+                                                         vcn_lineart_error_scale=vcn_lineart_error_scale[power],
                                                          )
               power = power + 1
 
@@ -341,21 +356,40 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
-        flow = get_flow_tv(x_sample, ref)
-        warped = self.flow_warping ( x_sample , self.vcn_flows[0])
+        flow = None
+        if vcn_flow_error_scale > 0:
+            flow = get_flow_tv(x_sample, ref)
+
+        warped = None
+        if vcn_warp_error_scale > 0:
+            warped = self.flow_warping ( x_sample , self.vcn_flows[0])
+
+        lineart = None
+        if self.vcn_lineart != None and self.vcn_lineart_error_scale > 0:
+            lineart = get_lineart(x_sample)
 
         loss = []
 
-        err1 = (torch . where ( warped != 0 , warped - ref , 0) ** 2).reshape(-1)
-        err1 = torch.kthvalue(err1, int((90 / 100) * err1.numel())).values # 90%%
-        print("\n===> warp_err", err1)
+        err1 = 0
+        if warped != None:
+            err1 = (torch . where ( warped != 0 , warped - ref , 0) ** 2).reshape(-1)
+            err1 = torch.kthvalue(err1, int((90 / 100) * err1.numel())).values # 90%%
+            print("\n===> warp_err", err1, vcn_warp_error_scale, err1*vcn_warp_error_scale)
 
-        err2 = (torch . where ( flow != 0 , self.vcn_flows[0] - flow , 0) ** 2).reshape(-1)
-        err2 = torch.kthvalue(err2, int((90 / 100) * err2.numel())).values # 90%%
-        print("\n===> flow_err", err2)
+        err2 = 0
+        if flow != None:
+            err2 = (torch . where ( flow != 0 , self.vcn_flows[0] - flow , 0) ** 2).reshape(-1)
+            err2 = torch.kthvalue(err2, int((90 / 100) * err2.numel())).values # 90%%
+            print("\n===> flow_err", err2, vcn_flow_error_scale, err2*vcn_flow_error_scale)
 
-        err = vcn_warp_error_scale * err1 + vcn_flow_error_scale * err2
-        print("\n===> err", err, vcn_warp_error_scale, err1, vcn_flow_error_scale, err2)
+        err3 = 0
+        if lineart != None:
+            err3 = (torch . where ( flow != 0 , self.vcn_prev_lineart - lineart , 0) ** 2).reshape(-1)
+            err3 = torch.kthvalue(err3, int((90 / 100) * err3.numel())).values # 90%%
+            print("\n===> lineart_err", err3, vcn_lineart_error_scale, err3*vcn_lineart_error_scale)
+
+        err = vcn_warp_error_scale * err1 + vcn_flow_error_scale * err2 + vcn_lineart_error_scale * err3
+        print("\n===> err", err)
 
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
@@ -558,6 +592,10 @@ def get_flow_field(flow,
           # Draw the arrow on the image
           img.line([arrow_start, arrow_end], fill='green', width=0)
   return show
+
+def get_lineart(sample):
+   global lineart
+   return lineart.LineartDetector("sk_model.pth")(sample)
 
 def plot_losses(losses):
     plt.plot(losses)
