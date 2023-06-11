@@ -340,6 +340,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         print("\n===> flow_err", err2)
 
         err = self.vcn_warp_error_scale * err1 + self.vcn_flow_error_scale * err2
+        print("\n===> err", err, self.vcn_warp_error_scale, err1, self.vcn_flow_error_scale, err2)
 
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
