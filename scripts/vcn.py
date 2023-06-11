@@ -43,7 +43,7 @@ from modules.processing import create_random_tensors, opt_C, opt_f
 from tqdm.auto import trange, tqdm
 utils = importlib.import_module("repositories.k-diffusion.k_diffusion.utils")
 sampling = importlib.import_module("repositories.k-diffusion.k_diffusion.sampling")
-lineart = None
+lineart_detector = None
 
 from torchvision.models.optical_flow import raft_large
 from torchvision.models.optical_flow import Raft_Large_Weights
