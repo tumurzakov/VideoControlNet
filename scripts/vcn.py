@@ -601,7 +601,7 @@ def get_lineart(sample):
        lineart_detector.device = 'cuda'
    return lineart_detector(sample)
 
-def plot_losses(losho
+def plot_losses(losses):
     plt.plot(losses)
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
