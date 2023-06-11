@@ -329,8 +329,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                            factor=self.vcn_scheduler_factor,
                                                            patience=self.vcn_scheduler_patience)
 
+    ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
+
     if vcn_lineart_error_scale > 0 and self.vcn_prev_lineart == None:
-        self.vcn_prev_lineart = get_lineart(np.array(self.vcn_previous_frames[0]))
+        self.vcn_prev_lineart = get_lineart(ref)
 
     for epoch in range (vcn_max_epochs):
 
@@ -353,7 +355,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         x_sample = x_samples_ddim[0] * 255.0
         x_sample = x_sample.permute(1, 2, 0)
 
-        ref = torch.Tensor(np.array(self.vcn_previous_frames[0])).to('cuda')
 
         flow = None
         if vcn_flow_error_scale > 0:
