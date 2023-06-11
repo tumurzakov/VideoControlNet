@@ -191,8 +191,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_lineart_error_scale = vcn_lineart_error_scale
 
     self.vcn_prev_lineart = None
-    if isinstance(vcn_lineart_error_scale, list) or (isinstance(vcn_flow_error_scale, int) and vcn_flow_error_scale > 0):
-        self.vcn_prev_lineart = get_lineart(np.array(vcn_previous_frames[0]))
 
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
@@ -330,6 +328,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                            mode='min',
                                                            factor=self.vcn_scheduler_factor,
                                                            patience=self.vcn_scheduler_patience)
+
+    if vcn_lineart_error_scale > 0 and self.vcn_prev_lineart == None:
+        self.vcn_prev_lineart = get_lineart(np.array(self.vcn_previous_frames[0]))
 
     for epoch in range (vcn_max_epochs):
 
