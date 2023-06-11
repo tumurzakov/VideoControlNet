@@ -167,7 +167,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_sample_steps = 10,
                vcn_warp_error_scale = 1,
                vcn_flow_error_scale = 1,
-               vcn_lineart_error_scale = 1,
+               vcn_lineart_error_scale = 0,
                **kwargs):
 
     super().__init__(**kwargs)
@@ -191,7 +191,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_lineart_error_scale = vcn_lineart_error_scale
 
     self.vcn_prev_lineart = None
-    if vcn_lineart != None:
+    if vcn_lineart_error_scale > 0:
         self.vcn_prev_lineart = get_lineart(np.array(vcn_previous_frames[0]))
 
   def init(self, all_prompts, all_seeds, all_subseeds):
