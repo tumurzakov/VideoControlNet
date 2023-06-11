@@ -594,10 +594,11 @@ def get_flow_field(flow,
   return show
 
 def get_lineart(sample):
-   global lineart
-   if lineart == None:
+   global lineart_detector
+   if lineart_detector == None:
        lineart = importlib.import_module("extensions.sd-webui-controlnet.annotator.lineart")
-   return lineart.LineartDetector("sk_model.pth")(sample)
+       lineart_detector = lineart.LineartDetector("sk_model.pth").to('cuda')
+   return lineart_detector(sample)
 
 def plot_losses(losses):
     plt.plot(losses)
