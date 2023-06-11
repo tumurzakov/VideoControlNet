@@ -165,7 +165,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_scheduler_factor = 0.1,
                vcn_scheduler_patience = 5,
                vcn_sample_steps = 10,
-               vcn_lineart = None,
                vcn_warp_error_scale = 1,
                vcn_flow_error_scale = 1,
                vcn_lineart_error_scale = 1,
@@ -190,8 +189,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_warp_error_scale = vcn_warp_error_scale
     self.vcn_flow_error_scale = vcn_flow_error_scale
     self.vcn_lineart_error_scale = vcn_lineart_error_scale
-
-    self.vcn_lineart = vcn_lineart
 
     self.vcn_prev_lineart = None
     if vcn_lineart != None:
