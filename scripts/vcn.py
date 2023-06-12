@@ -421,6 +421,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         index = 0
         for ref in refs:
             err = self.calc_error(
+                x_sample,
                 ref[0],
                 ref[1],
                 ref[2],
