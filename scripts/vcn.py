@@ -389,7 +389,12 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref_flow = torch.sum(torch.stack(self.vcn_flows[:index+1]), dim=0)
 
-        refs.append([ref, ref_flow, ref_lineart])
+        refs.append([
+            ref.to('cuda'),
+            ref_flow.to('cuda'),
+            ref_lineart.to('cuda'),
+            ])
+
         index = index+1
 
     for epoch in range (vcn_max_epochs):
