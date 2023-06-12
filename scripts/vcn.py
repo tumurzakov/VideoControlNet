@@ -321,19 +321,19 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         loss = []
 
-        err1 = torch.Tensor(0)
+        err1 = torch.Tensor(0).to('cuda')
         if warped != None:
             err1 = (torch . where ( warped != 0 , warped - ref , 0) ** 2).reshape(-1)
             err1 = torch.kthvalue(err1, int((90 / 100) * err1.numel())).values # 90%%
             print("\n===> warp_err", err1, vcn_warp_error_scale, err1*vcn_warp_error_scale)
 
-        err2 = torch.Tensor(0)
+        err2 = torch.Tensor(0).to('cuda')
         if flow != None:
             err2 = (torch . where ( flow != 0 , ref_flow - flow , 0) ** 2).reshape(-1)
             err2 = torch.kthvalue(err2, int((90 / 100) * err2.numel())).values # 90%%
             print("\n===> flow_err", err2, vcn_flow_error_scale, err2*vcn_flow_error_scale)
 
-        err3 = torch.Tensor(0)
+        err3 = torch.Tensor(0).to('cuda')
         if lineart != None:
             err3 = (torch . where ( lineart != 0 , ref_lineart - lineart , 0) ** 2).reshape(-1)
             err3 = torch.kthvalue(err3, int((90 / 100) * err3.numel())).values # 90%%
