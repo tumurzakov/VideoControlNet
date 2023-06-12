@@ -512,7 +512,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         print("\n====>vram loss", torch.cuda.memory_allocated('cuda') / 1024**3)
 
         loss = max(loss)
-        self.loss_history.append(loss)
+        self.loss_history.append(loss.item())
 
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
           vcn_minimal_loss = loss
