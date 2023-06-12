@@ -297,13 +297,13 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       return frame
 
   def calc_error(self,
-				 x_sample,
-				 ref,
-				 ref_flow,
-				 ref_lineart,
-				 vcn_warp_error_scale,
-				 vcn_flow_error_scale,
-				 vcn_lineart_error_scale):
+                 x_sample,
+                 ref,
+                 ref_flow,
+                 ref_lineart,
+                 vcn_warp_error_scale,
+                 vcn_flow_error_scale,
+                 vcn_lineart_error_scale):
 
         flow = None
         if vcn_flow_error_scale > 0:
@@ -316,7 +316,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         lineart = None
         if vcn_lineart_error_scale > 0:
             if warped == None:
-				warped = self.flow_warping (x_sample, ref_flow)
+                warped = self.flow_warping (x_sample, ref_flow)
             lineart = get_lineart(warped)
 
         loss = []
@@ -381,11 +381,11 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     refs = []
     index = 0
     for frame in self.vcn_previous_frames:
-		ref = torch.Tensor(np.array(frame)).to('cuda')
+        ref = torch.Tensor(np.array(frame)).to('cuda')
 
-		ref_lineart = None
-		if vcn_lineart_error_scale > 0:
-			ref_lineart = get_lineart(ref)
+        ref_lineart = None
+        if vcn_lineart_error_scale > 0:
+            ref_lineart = get_lineart(ref)
 
         ref_flow = torch.sum(torch.stack(self.vcn_flows[:index]), dim=0)
 
@@ -419,15 +419,15 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         loss = []
         index = 0
-		for ref in refs:
+        for ref in refs:
             err = self.calc_error(
-				ref[0],
+                ref[0],
                 ref[1],
-		        ref[2],
+                ref[2],
                 vcn_warp_error_scale,
                 vcn_flow_error_scale,
                 vcn_lineart_error_scale,
-				)
+                )
             index = index + 1
 
             print("\n===> ref loss", index, err.item())
