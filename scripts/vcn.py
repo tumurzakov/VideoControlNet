@@ -441,7 +441,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
             # normalized by number of non - zero pixels
             loss . append ( err )
 
-        loss = loss.mean()
+        loss = max(loss)
         self.loss_history.append([loss])
 
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
