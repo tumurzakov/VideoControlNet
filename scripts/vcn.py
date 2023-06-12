@@ -440,7 +440,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
             loss . append ( err )
 
         loss = max(loss)
-        self.loss_history.append([loss])
+        self.loss_history.append(loss)
 
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
           vcn_minimal_loss = loss
@@ -450,7 +450,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       optimizer.step ()
       scheduler.step(loss)
 
-      if min(self.loss_history[-self.vcn_stop_after_inefficient_steps:]) > vcn_minimal_loss.item():
+      if min(self.loss_history[-self.vcn_stop_after_inefficient_steps:]) > vcn_minimal_loss:
         break
 
       current_lr = optimizer.param_groups[0]['lr']
