@@ -418,6 +418,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
 
         loss = []
+        index = 0
 		for ref in refs:
             err = self.calc_error(
 				ref[0],
@@ -427,6 +428,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                 vcn_flow_error_scale,
                 vcn_lineart_error_scale,
 				)
+            index = index + 1
+
+            print("\n===> ref loss", index, err.item())
 
             # normalized by number of non - zero pixels
             loss . append ( err )
