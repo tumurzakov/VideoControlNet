@@ -305,21 +305,16 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                  vcn_flow_error_scale,
                  vcn_lineart_error_scale):
 
-        print("\n====>", vcn_warp_error_scale, vcn_flow_error_scale, vcn_lineart_error_scale)
-
         flow = None
         if vcn_flow_error_scale > 0:
-            print("\n===> calc flow")
             flow = get_flow_tv(x_sample, ref)
 
         warped = None
         if vcn_warp_error_scale > 0:
-            print("\n===> calc warp")
             warped = self.flow_warping (x_sample, ref_flow)
 
         lineart = None
         if vcn_lineart_error_scale > 0:
-            print("\n===> calc lineart")
             if warped == None:
                 warped = self.flow_warping (x_sample, ref_flow)
             lineart = get_lineart(warped)
