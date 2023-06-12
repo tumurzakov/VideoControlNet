@@ -27,6 +27,8 @@ from modules.sd_models_config import find_checkpoint_config_near_filename
 from modules.realesrgan_model import get_realesrgan_models
 from modules import devices
 from typing import List
+from einops import rearrange
+
 import piexif
 import piexif.helper
 import numpy as np
