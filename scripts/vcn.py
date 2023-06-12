@@ -340,14 +340,17 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       optimizer.zero_grad ()
 
       with torch.enable_grad():
-        samples_ddim = self.sampler.sample_img2img(self,
-          self.init_latent,
-          noise,
-          conditioning,
-          unconditional_conditioning,
-          image_conditioning=self.image_conditioning,
-          steps=self.vcn_sample_steps,
-          )
+		try:
+			samples_ddim = self.sampler.sample_img2img(self,
+			  self.init_latent,
+			  noise,
+			  conditioning,
+			  unconditional_conditioning,
+			  image_conditioning=self.image_conditioning,
+			  steps=self.vcn_sample_steps,
+			  )
+		except Exception as e:
+			print("\n===>Exception", e)
 
         x_samples_ddim = [decode_first_stage(self.sd_model, samples_ddim)[0]]
         x_samples_ddim = torch.stack(x_samples_ddim).float()
