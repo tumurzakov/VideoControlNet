@@ -490,6 +490,7 @@ def infer(controlnets=[],
   shared.state.end()
 
   processed.vcn_noise = p.vcn_noise
+  processed.loss_history = p.loss_history
 
   p.close()
   shared.total_tqdm.clear()
