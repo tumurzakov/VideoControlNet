@@ -45,13 +45,10 @@ from modules.processing import create_random_tensors, opt_C, opt_f
 from tqdm.auto import trange, tqdm
 utils = importlib.import_module("repositories.k-diffusion.k_diffusion.utils")
 sampling = importlib.import_module("repositories.k-diffusion.k_diffusion.sampling")
-lineart_detector = None
 
 from torchvision.models.optical_flow import raft_large
 from torchvision.models.optical_flow import Raft_Large_Weights
 import torchvision.transforms.functional as F
-
-raft_model = None
 
 cnet_enabled = {
     'canny': {'modules':['canny'], 'model':''},
@@ -307,7 +304,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         flow = None
         if vcn_flow_error_scale > 0:
-            flow = get_flow(x_sample, ref)
+            flow = self.get_flow(x_sample, ref)
 
         warped = None
         if vcn_warp_error_scale > 0:
@@ -317,7 +314,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         if vcn_lineart_error_scale > 0:
             if warped == None:
                 warped = self.flow_warping (x_sample, ref_flow)
-            lineart = get_lineart(warped)
+            lineart = self.get_lineart(warped)
 
         err1 = torch.tensor(0).to('cuda')
         if warped != None:
@@ -341,6 +338,65 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         print("\n===> err", err)
 
         return err
+
+  def get_lineart(self, sample):
+      print("\n====>vram get_lineart start", torch.cuda.memory_allocated('cuda') / 1024**3)
+      if self.lineart_detector == None:
+         lineart = importlib.import_module("extensions.sd-webui-controlnet.annotator.lineart")
+
+         class LineartDetector(lineart.LineartDetector):
+             def __call__(self, input_image):
+                if self.model is None:
+                    self.load_model(self.model_name)
+                self.model.to(self.device)
+
+                assert input_image.ndim == 3
+                image = input_image.to('cuda')
+
+                image = image.float()
+                image = image / 255.0
+                image = rearrange(image, 'h w c -> 1 c h w')
+                line = self.model(image)[0][0]
+                line = (line * 255.0).clip(0, 255)
+
+                return line
+
+         self.lineart_detector = LineartDetector("sk_model.pth")
+         self.lineart_detector.device = 'cuda'
+      print("\n====>vram get_lineart end", torch.cuda.memory_allocated('cuda') / 1024**3)
+
+      return self.lineart_detector(sample)
+
+  def get_flow(self, frame1, frame2):
+      print("\n====>vram get_flow start", torch.cuda.memory_allocated('cuda') / 1024**3)
+
+      if self.raft_model == None:
+          self.raft_model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to('cuda')
+          self.raft_model = self.raft_model.eval()
+
+      # If you can, run this example on a GPU, it will be a lot faster.
+      device = "cuda"
+
+      f1 = frame1.permute(2, 0, 1)/255
+      f2 = frame2.permute(2, 0, 1)/255
+
+      f1 = torch.stack([f1])
+      f2 = torch.stack([f2])
+
+      f1 = F.resize(f1, size=[frame1.shape[0], frame1.shape[1]], antialias=False)
+      f2 = F.resize(f2, size=[frame2.shape[0], frame2.shape[1]], antialias=False)
+
+      weights = Raft_Large_Weights.DEFAULT
+      transforms = weights.transforms()
+
+      f1, f2 = transforms(f1, f2)
+
+      list_of_flows = self.raft_model(f2.to(device), f1.to(device))
+      flow = list_of_flows[-1].squeeze(0).permute(1,2,0)
+
+      print("\n====>vram get_flow end", torch.cuda.memory_allocated('cuda') / 1024**3)
+
+      return flow
 
   def temporal_consistency_optimization(self,
                                         noise,
@@ -386,7 +442,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref_lineart = None
         if vcn_lineart_error_scale > 0:
-            ref_lineart = get_lineart(ref).to('cuda')
+            ref_lineart = self.get_lineart(ref).to('cuda')
 
         ref_flow = torch.sum(torch.stack(self.vcn_flows[:index+1]), dim=0).to('cuda')
 
@@ -591,34 +647,6 @@ def degrid(grid, power):
       images.append(img)
   return images
 
-def get_flow(frame1, frame2):
-    global raft_model
-    if raft_model == None:
-        raft_model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to('cuda')
-        raft_model = raft_model.eval()
-
-    # If you can, run this example on a GPU, it will be a lot faster.
-    device = "cuda"
-
-    f1 = frame1.permute(2, 0, 1)/255
-    f2 = frame2.permute(2, 0, 1)/255
-
-    f1 = torch.stack([f1])
-    f2 = torch.stack([f2])
-
-    f1 = F.resize(f1, size=[frame1.shape[0], frame1.shape[1]], antialias=False)
-    f2 = F.resize(f2, size=[frame2.shape[0], frame2.shape[1]], antialias=False)
-
-    weights = Raft_Large_Weights.DEFAULT
-    transforms = weights.transforms()
-
-    f1, f2 = transforms(f1, f2)
-
-    list_of_flows = raft_model(f2.to(device), f1.to(device))
-    flow = list_of_flows[-1].squeeze(0).permute(1,2,0)
-
-    return flow
-
 def get_flow_field(flow,
                    image,
                    arrow_scale = 1,
@@ -644,32 +672,6 @@ def get_flow_field(flow,
           img.line([arrow_start, arrow_end], fill='green', width=0)
   return show
 
-
-def get_lineart(sample):
-   global lineart_detector
-   if lineart_detector == None:
-       lineart = importlib.import_module("extensions.sd-webui-controlnet.annotator.lineart")
-
-       class LineartDetector(lineart.LineartDetector):
-           def __call__(self, input_image):
-              if self.model is None:
-                  self.load_model(self.model_name)
-              self.model.to(self.device)
-
-              assert input_image.ndim == 3
-              image = input_image.to('cuda')
-
-              image = image.float()
-              image = image / 255.0
-              image = rearrange(image, 'h w c -> 1 c h w')
-              line = self.model(image)[0][0]
-              line = (line * 255.0).clip(0, 255)
-
-              return line
-
-       lineart_detector = LineartDetector("sk_model.pth")
-       lineart_detector.device = 'cuda'
-   return lineart_detector(sample)
 
 def plot_losses(losses):
     plt.plot(losses)
