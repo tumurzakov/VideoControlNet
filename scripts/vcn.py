@@ -50,6 +50,8 @@ from torchvision.models.optical_flow import raft_large
 from torchvision.models.optical_flow import Raft_Large_Weights
 import torchvision.transforms.functional as F
 
+vram_debug = False
+
 cnet_enabled = {
     'canny': {'modules':['canny'], 'model':''},
     'mlsd': {'modules':['mlsd'], 'model':''},
@@ -343,7 +345,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         return err
 
   def get_lineart(self, sample):
-      print("\n====>vram get_lineart start", torch.cuda.memory_allocated('cuda') / 1024**3)
+      print("\n====>vram get_lineart start", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
       if self.lineart_detector == None:
          lineart = importlib.import_module("extensions.sd-webui-controlnet.annotator.lineart")
 
@@ -366,13 +368,13 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
          self.lineart_detector = LineartDetector("sk_model.pth")
          self.lineart_detector.device = 'cuda'
-      print("\n====>vram get_lineart end", torch.cuda.memory_allocated('cuda') / 1024**3)
+      print("\n====>vram get_lineart end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
       with torch.no_grad():
         return self.lineart_detector(sample)
 
   def get_flow(self, frame1, frame2):
-      print("\n====>vram get_flow start", torch.cuda.memory_allocated('cuda') / 1024**3)
+      print("\n====>vram get_flow start", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
       if self.raft_model == None:
           self.raft_model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to('cuda')
@@ -424,7 +426,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     prompts : textual conditioning strings
     """
 
-    print("\n====>vram start", torch.cuda.memory_allocated('cuda') / 1024**3)
+    print("\n====>vram start", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
     self.loss_history = []
 
@@ -462,7 +464,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     for epoch in range (vcn_max_epochs):
 
-      print("\n====>vram epoch", epoch, torch.cuda.memory_allocated('cuda') / 1024**3)
+      print("\n====>vram epoch", epoch, torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
       optimizer.zero_grad ()
 
@@ -486,12 +488,12 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         x_sample = x_samples_ddim[0] * 255.0
         x_sample = x_sample.permute(1, 2, 0)
 
-        print("\n====>vram sampled", epoch, torch.cuda.memory_allocated('cuda') / 1024**3)
+        print("\n====>vram sampled", epoch, torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
         loss = []
         index = 0
         for ref in refs:
-            print("\n====>vram ref", index, torch.cuda.memory_allocated('cuda') / 1024**3)
+            print("\n====>vram ref", index, torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
             err = self.calc_error(
                 x_sample,
@@ -509,7 +511,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
             # normalized by number of non - zero pixels
             loss . append ( err )
 
-        print("\n====>vram loss", torch.cuda.memory_allocated('cuda') / 1024**3)
+        print("\n====>vram loss", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
         loss = max(loss)
         self.loss_history.append(loss.item())
@@ -518,7 +520,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           vcn_minimal_loss = loss
           optimal_noise = noise.clone()
 
-      print("\n====>vram backward", torch.cuda.memory_allocated('cuda') / 1024**3)
+      print("\n====>vram backward", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
       loss.backward ()
       optimizer.step ()
@@ -529,10 +531,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       current_lr = optimizer.param_groups[0]['lr']
       print("\n===> loss", epoch, loss.item(), current_lr, hash_tensor(noise))
-      print("\n====>vram loop end", torch.cuda.memory_allocated('cuda') / 1024**3)
+      print("\n====>vram loop end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
     print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_noise))
-    print("\n====>vram end", torch.cuda.memory_allocated('cuda') / 1024**3)
+    print("\n====>vram end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
     return optimal_noise
 
 
@@ -552,7 +554,7 @@ def infer(controlnets=[],
           vcn_sample_steps = 10,
           **kwargs):
 
-  print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3)
+  print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
   p = StableDiffusionProcessingImg2ImgVCN(
       sd_model=shared.sd_model,
@@ -602,13 +604,13 @@ def infer(controlnets=[],
   p.scripts.scripts = enabled_scripts
   p.scripts.alwayson_scripts = enabled_scripts
 
-  print("\n====>vram p init", torch.cuda.memory_allocated('cuda') / 1024**3)
+  print("\n====>vram p init", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
   shared.state.begin()
   processed = process_images(p)
   shared.state.end()
 
-  print("\n====>vram p processed", torch.cuda.memory_allocated('cuda') / 1024**3)
+  print("\n====>vram p processed", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
   processed.vcn_noise = p.vcn_noise
   processed.loss_history = p.loss_history
@@ -616,12 +618,12 @@ def infer(controlnets=[],
   p.close()
   shared.total_tqdm.clear()
 
-  print("\n====>vram p close", torch.cuda.memory_allocated('cuda') / 1024**3)
+  print("\n====>vram p close", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
   del p
   devices.torch_gc()
 
-  print("\n====>vram p del", torch.cuda.memory_allocated('cuda') / 1024**3)
+  print("\n====>vram p del", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
   return processed
 
