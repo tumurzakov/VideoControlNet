@@ -377,19 +377,19 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         loss = []
 
-        err1 = 0
+        err1 = torch.Tensor(0)
         if warped != None:
             err1 = (torch . where ( warped != 0 , warped - ref , 0) ** 2).reshape(-1)
             err1 = torch.kthvalue(err1, int((90 / 100) * err1.numel())).values # 90%%
             print("\n===> warp_err", err1, vcn_warp_error_scale, err1*vcn_warp_error_scale)
 
-        err2 = 0
+        err2 = torch.Tensor(0)
         if flow != None:
             err2 = (torch . where ( flow != 0 , self.vcn_flows[0] - flow , 0) ** 2).reshape(-1)
             err2 = torch.kthvalue(err2, int((90 / 100) * err2.numel())).values # 90%%
             print("\n===> flow_err", err2, vcn_flow_error_scale, err2*vcn_flow_error_scale)
 
-        err3 = 0
+        err3 = torch.Tensor(0)
         if lineart != None:
             err3 = (torch . where ( lineart != 0 , self.vcn_prev_lineart - lineart , 0) ** 2).reshape(-1)
             err3 = torch.kthvalue(err3, int((90 / 100) * err3.numel())).values # 90%%
@@ -401,7 +401,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         # normalized by number of non - zero pixels
         loss . append ( err . sum () / ( err !=0). sum ())
         loss = sum ( loss )/ len ( loss )
-        self.loss_history.append(loss.item())
+        self.loss_history.append([loss.item(), err1.item(), err2.item(), err3.item()])
 
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
           vcn_minimal_loss = loss
