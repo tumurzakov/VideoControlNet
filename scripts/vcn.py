@@ -595,11 +595,30 @@ def get_flow_field(flow,
           img.line([arrow_start, arrow_end], fill='green', width=0)
   return show
 
+
 def get_lineart(sample):
    global lineart_detector
    if lineart_detector == None:
        lineart = importlib.import_module("extensions.sd-webui-controlnet.annotator.lineart")
-       lineart_detector = lineart.LineartDetector("sk_model.pth")
+
+       class LineartDetector(lineart.LineartDetector):
+           def __call__(self, input_image):
+              if self.model is None:
+                  self.load_model(self.model_name)
+              self.model.to(self.device)
+
+              assert input_image.ndim == 3
+              image = input_image.to('cuda')
+
+              image = image.float()
+              image = image / 255.0
+              image = rearrange(image, 'h w c -> 1 c h w')
+              line = self.model(image)[0][0]
+              line = (line * 255.0).clip(0, 255)
+
+              return line
+
+       lineart_detector = LineartDetector("sk_model.pth")
        lineart_detector.device = 'cuda'
    return lineart_detector(sample)
 
