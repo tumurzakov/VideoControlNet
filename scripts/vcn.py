@@ -362,7 +362,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     prompts : textual conditioning strings
     """
 
-    print("\n====>vram start", torch.cuda.memory_allocated(device) / 1024**3)
+    print("\n====>vram start", torch.cuda.memory_allocated('cuda') / 1024**3)
 
     self.loss_history = []
 
@@ -400,7 +400,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     for epoch in range (vcn_max_epochs):
 
-      print("\n====>vram epoch", epoch, torch.cuda.memory_allocated(device) / 1024**3)
+      print("\n====>vram epoch", epoch, torch.cuda.memory_allocated('cuda') / 1024**3)
 
       optimizer.zero_grad ()
 
@@ -424,12 +424,12 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         x_sample = x_samples_ddim[0] * 255.0
         x_sample = x_sample.permute(1, 2, 0)
 
-        print("\n====>vram sampled", epoch, torch.cuda.memory_allocated(device) / 1024**3)
+        print("\n====>vram sampled", epoch, torch.cuda.memory_allocated('cuda') / 1024**3)
 
         loss = []
         index = 0
         for ref in refs:
-            print("\n====>vram ref", index, torch.cuda.memory_allocated(device) / 1024**3)
+            print("\n====>vram ref", index, torch.cuda.memory_allocated('cuda') / 1024**3)
 
             err = self.calc_error(
                 x_sample,
@@ -447,7 +447,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
             # normalized by number of non - zero pixels
             loss . append ( err )
 
-        print("\n====>vram loss", torch.cuda.memory_allocated(device) / 1024**3)
+        print("\n====>vram loss", torch.cuda.memory_allocated('cuda') / 1024**3)
 
         loss = max(loss)
         self.loss_history.append(loss)
@@ -456,7 +456,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           vcn_minimal_loss = loss
           optimal_noise = noise.clone()
 
-      print("\n====>vram backward", torch.cuda.memory_allocated(device) / 1024**3)
+      print("\n====>vram backward", torch.cuda.memory_allocated('cuda') / 1024**3)
 
       loss.backward ()
       optimizer.step ()
@@ -467,10 +467,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       current_lr = optimizer.param_groups[0]['lr']
       print("\n===> loss", epoch, loss.item(), current_lr, hash_tensor(noise))
-      print("\n====>vram loop end", torch.cuda.memory_allocated(device) / 1024**3)
+      print("\n====>vram loop end", torch.cuda.memory_allocated('cuda') / 1024**3)
 
     print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_noise))
-    print("\n====>vram end", torch.cuda.memory_allocated(device) / 1024**3)
+    print("\n====>vram end", torch.cuda.memory_allocated('cuda') / 1024**3)
     return optimal_noise
 
 
