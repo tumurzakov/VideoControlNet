@@ -524,6 +524,7 @@ def degrid(grid, power):
   return images
 
 def get_flow_tv(frame1, frame2):
+    global raft_model
     if raft_model == None:
         raft_model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to('cuda')
         raft_model = raft_model.eval()
