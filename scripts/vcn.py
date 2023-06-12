@@ -436,7 +436,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                 )
             index = index + 1
 
-            print("\n===> ref loss", index, err.item())
+            print("\n===> ref loss", index, err)
 
             # normalized by number of non - zero pixels
             loss . append ( err )
