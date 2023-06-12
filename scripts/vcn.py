@@ -490,6 +490,8 @@ def infer(controlnets=[],
           vcn_sample_steps = 10,
           **kwargs):
 
+  print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3)
+
   p = StableDiffusionProcessingImg2ImgVCN(
       sd_model=shared.sd_model,
       do_not_save_samples=True,
@@ -538,9 +540,13 @@ def infer(controlnets=[],
   p.scripts.scripts = enabled_scripts
   p.scripts.alwayson_scripts = enabled_scripts
 
+  print("\n====>vram p init", torch.cuda.memory_allocated('cuda') / 1024**3)
+
   shared.state.begin()
   processed = process_images(p)
   shared.state.end()
+
+  print("\n====>vram p processed", torch.cuda.memory_allocated('cuda') / 1024**3)
 
   processed.vcn_noise = p.vcn_noise
   processed.loss_history = p.loss_history
@@ -548,7 +554,11 @@ def infer(controlnets=[],
   p.close()
   shared.total_tqdm.clear()
 
+  print("\n====>vram p close", torch.cuda.memory_allocated('cuda') / 1024**3)
+
   del p
+
+  print("\n====>vram p del", torch.cuda.memory_allocated('cuda') / 1024**3)
 
   return processed
 
