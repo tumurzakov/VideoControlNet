@@ -310,7 +310,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         flow = None
         if vcn_flow_error_scale > 0:
             print("\n===> calc flow")
-            calc_flow = get_flow_tv(x_sample, ref)
+            flow = get_flow_tv(x_sample, ref)
 
         warped = None
         if vcn_warp_error_scale > 0:
