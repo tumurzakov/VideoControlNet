@@ -385,14 +385,14 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         ref_lineart = None
         if vcn_lineart_error_scale > 0:
-            ref_lineart = get_lineart(ref)
+            ref_lineart = get_lineart(ref).to('cuda')
 
-        ref_flow = torch.sum(torch.stack(self.vcn_flows[:index+1]), dim=0)
+        ref_flow = torch.sum(torch.stack(self.vcn_flows[:index+1]), dim=0).to('cuda')
 
         refs.append([
-            ref.to('cuda'),
-            ref_flow.to('cuda'),
-            ref_lineart.to('cuda'),
+            ref,
+            ref_flow,
+            ref_lineart,
             ])
 
         index = index+1
