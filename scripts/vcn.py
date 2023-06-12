@@ -186,6 +186,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_flow_error_scale = vcn_flow_error_scale
     self.vcn_lineart_error_scale = vcn_lineart_error_scale
 
+    self.raft_model = None
+    self.lineart_detector = None
+
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
 
