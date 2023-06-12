@@ -263,7 +263,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       del x
       devices.torch_gc()
-      torch.cuda.empty_cache()
 
       return samples
 
@@ -620,6 +619,7 @@ def infer(controlnets=[],
   print("\n====>vram p close", torch.cuda.memory_allocated('cuda') / 1024**3)
 
   del p
+  devices.torch_gc()
 
   print("\n====>vram p del", torch.cuda.memory_allocated('cuda') / 1024**3)
 
