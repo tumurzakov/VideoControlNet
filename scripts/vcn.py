@@ -263,6 +263,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       del x
       devices.torch_gc()
+      torch.cuda.empty_cache()
 
       return samples
 
@@ -368,7 +369,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
          self.lineart_detector.device = 'cuda'
       print("\n====>vram get_lineart end", torch.cuda.memory_allocated('cuda') / 1024**3)
 
-      return self.lineart_detector(sample)
+      with torch.no_grad():
+        return self.lineart_detector(sample)
 
   def get_flow(self, frame1, frame2):
       print("\n====>vram get_flow start", torch.cuda.memory_allocated('cuda') / 1024**3)
