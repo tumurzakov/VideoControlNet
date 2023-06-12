@@ -307,7 +307,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         flow = None
         if vcn_flow_error_scale > 0:
-            flow = get_flow_tv(x_sample, ref)
+            flow = get_flow(x_sample, ref)
 
         warped = None
         if vcn_warp_error_scale > 0:
@@ -361,6 +361,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     unconditional_conditioning : float tensor in [T , H , W , C ] format
     prompts : textual conditioning strings
     """
+
+    print("\n====>vram start", torch.cuda.memory_allocated(device) / 1024**3)
+
     self.loss_history = []
 
     self.sd_model.eval()
@@ -397,6 +400,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     for epoch in range (vcn_max_epochs):
 
+      print("\n====>vram epoch", epoch, torch.cuda.memory_allocated(device) / 1024**3)
+
       optimizer.zero_grad ()
 
       with torch.enable_grad():
@@ -419,10 +424,13 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         x_sample = x_samples_ddim[0] * 255.0
         x_sample = x_sample.permute(1, 2, 0)
 
+        print("\n====>vram sampled", epoch, torch.cuda.memory_allocated(device) / 1024**3)
 
         loss = []
         index = 0
         for ref in refs:
+            print("\n====>vram ref", index, torch.cuda.memory_allocated(device) / 1024**3)
+
             err = self.calc_error(
                 x_sample,
                 ref[0],
@@ -439,12 +447,16 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
             # normalized by number of non - zero pixels
             loss . append ( err )
 
+        print("\n====>vram loss", torch.cuda.memory_allocated(device) / 1024**3)
+
         loss = max(loss)
         self.loss_history.append(loss)
 
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
           vcn_minimal_loss = loss
           optimal_noise = noise.clone()
+
+      print("\n====>vram backward", torch.cuda.memory_allocated(device) / 1024**3)
 
       loss.backward ()
       optimizer.step ()
@@ -455,8 +467,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       current_lr = optimizer.param_groups[0]['lr']
       print("\n===> loss", epoch, loss.item(), current_lr, hash_tensor(noise))
+      print("\n====>vram loop end", torch.cuda.memory_allocated(device) / 1024**3)
 
     print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_noise))
+    print("\n====>vram end", torch.cuda.memory_allocated(device) / 1024**3)
     return optimal_noise
 
 
@@ -534,6 +548,8 @@ def infer(controlnets=[],
   p.close()
   shared.total_tqdm.clear()
 
+  del p
+
   return processed
 
 def engrid(images):
@@ -565,7 +581,7 @@ def degrid(grid, power):
       images.append(img)
   return images
 
-def get_flow_tv(frame1, frame2):
+def get_flow(frame1, frame2):
     global raft_model
     if raft_model == None:
         raft_model = raft_large(weights=Raft_Large_Weights.DEFAULT, progress=False).to('cuda')
@@ -592,31 +608,6 @@ def get_flow_tv(frame1, frame2):
     flow = list_of_flows[-1].squeeze(0).permute(1,2,0)
 
     return flow
-
-def get_flow(frame1, frame2):
-  f1 = frame1.convert('L')
-  f2 = frame2.convert('L')
-
-  gray1 = np.array(f1)
-  gray2 = np.array(f2)
-
-  hsv = np.zeros_like(gray1)
-  hsv[..., 1] = 255
-
-  flow = cv.calcOpticalFlowFarneback(
-      prev=gray1,
-      next=gray2,
-      flow=None,
-      pyr_scale=0.5,
-      levels=3,
-      winsize=15,
-      iterations=3,
-      poly_n=7,
-      poly_sigma=1.5,
-      flags=0)
-  flow = torch.tensor(flow).to('cuda')
-  flow = flow.requires_grad_(True)
-  return flow
 
 def get_flow_field(flow,
                    image,
