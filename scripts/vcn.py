@@ -305,6 +305,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                  vcn_flow_error_scale,
                  vcn_lineart_error_scale):
 
+        print("\n====>", vcn_warp_error_scale, vcn_flow_error_scale, vcn_lineart_error_scale)
+
         flow = None
         if vcn_flow_error_scale > 0:
             calc_flow = get_flow_tv(x_sample, ref)
