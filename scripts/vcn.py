@@ -196,9 +196,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
 
-    self.sampler = sd_samplers.create_sampler(self.sampler_name, self.sd_model)
-    self.sampler.orig_func = self.sampler.func
-    self.sampler.func = torch.enable_grad()(lambda model, x, sigmas, *args, **kwargs: self.sampler.orig_func.__wrapped__(model, x, sigmas, *args, **kwargs))
+    if self.vcn_flows != None and len(self.vcn_flows) > 0:
+        self.sampler = sd_samplers.create_sampler(self.sampler_name, self.sd_model)
+        self.sampler.orig_func = self.sampler.func
+        self.sampler.func = torch.enable_grad()(lambda model, x, sigmas, *args, **kwargs: self.sampler.orig_func.__wrapped__(model, x, sigmas, *args, **kwargs))
 
 
   def sample(self, conditioning, unconditional_conditioning, seeds, subseeds, subseed_strength, prompts):
