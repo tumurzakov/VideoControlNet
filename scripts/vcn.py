@@ -401,8 +401,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       f1, f2 = transforms(f1, f2)
 
-      with torch.no_grad():
-        list_of_flows = self.raft_model(f2.to(device), f1.to(device))
+      list_of_flows = self.raft_model(f2.to(device), f1.to(device))
 
       flow = list_of_flows[-1].squeeze(0).permute(1,2,0)
 
