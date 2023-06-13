@@ -191,6 +191,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.raft_model = None
     self.lineart_detector = None
 
+    self.loss_history = []
+
   def init(self, all_prompts, all_seeds, all_subseeds):
     super().init(all_prompts, all_seeds, all_subseeds)
 
@@ -232,6 +234,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           vcn_optimizer_lr = [self.vcn_optimizer_lr]
           if isinstance(self.vcn_optimizer_lr, list):
               vcn_optimizer_lr = self.vcn_optimizer_lr
+
+          self.loss_history = []
 
           power = 0
           for epochs in max_epochs:
@@ -427,8 +431,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     """
 
     print("\n====>vram start", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
-
-    self.loss_history = []
 
     self.sd_model.eval()
 
