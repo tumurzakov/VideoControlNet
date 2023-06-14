@@ -272,9 +272,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       devices.torch_gc()
 
       if self.vcn_fidelity_oriented_compensation:
-          images = decode(samples)
-          delta = fidelity_oriented_zeroshot_encoding(images)
-          samples = encode(images - delta)
+          samples = fidelity_oriented_zeroshot_encoding(samples)
 
       return samples
 
@@ -714,22 +712,11 @@ def decode(latent):
   image = image.permute(0, 2, 3, 1)
   return image
 
-def fidelity_oriented_zeroshot_encoding(image):
+def fidelity_oriented_zeroshot_encoding(x0r):
   """
   2306.07954
   """
-  latent1 = encode(image)
-  image1 = decode(latent1)
-  latent2 = encode(image1)
-  image2 = decode(latent2)
-  return image - image2
 
-def fidelity_oriented_zeroshot_encoding_latent(latent):
-  """
-  2306.07954
-  """
-  image1 = decode(latent)
-  latent1 = encode(image1)
-  image2 = decode(latent1)
-  latent2 = encode(image2)
-  return latent - latent2
+  x0rr = encode(decode(x0r))
+
+  return x0r + (x0r - x0rr)
