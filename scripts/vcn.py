@@ -714,7 +714,7 @@ def decode(latent):
   image = image.permute(0, 3, 2, 1)
   return image
 
-def fidelity_oriented_zeroshot_encoding(self, image):
+def fidelity_oriented_zeroshot_encoding(image):
   """
   2306.07954
   """
@@ -724,7 +724,7 @@ def fidelity_oriented_zeroshot_encoding(self, image):
   image2 = decode(latent2)
   return image - image2
 
-def fidelity_oriented_zeroshot_encoding_latent(self, latent):
+def fidelity_oriented_zeroshot_encoding_latent(latent):
   """
   2306.07954
   """
