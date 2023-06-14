@@ -155,10 +155,10 @@ def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
 class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
   def __init__(self,
-               vcn_noise = None,
                vcn_flows = [],
                vcn_previous_frames = [],
-               vcn_max_epochs = 50,
+               vcn_max_noise_epochs = 50,
+               vcn_max_latent_epochs = 50,
                vcn_stop_after_inefficient_steps = 20,
                vcn_optimizer_lr = 0.01,
                vcn_scheduler_factor = 0.1,
@@ -175,14 +175,14 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     for flow in vcn_flows:
         self.vcn_flows.append(flow.to('cuda'))
 
-    self.vcn_max_epochs = vcn_max_epochs
+    self.vcn_max_latent_epochs = vcn_max_latent_epochs
+    self.vcn_max_noise_epochs = vcn_max_noise_epochs
     self.vcn_previous_frames = vcn_previous_frames
     self.vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps
     self.vcn_optimizer_lr = vcn_optimizer_lr
     self.vcn_scheduler_factor = vcn_scheduler_factor
     self.vcn_scheduler_patience = vcn_scheduler_patience
     self.vcn_sample_steps = vcn_sample_steps
-    self.vcn_noise = None
 
     self.vcn_warp_error_scale = vcn_warp_error_scale
     self.vcn_flow_error_scale = vcn_flow_error_scale
@@ -203,22 +203,23 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
 
   def sample(self, conditioning, unconditional_conditioning, seeds, subseeds, subseed_strength, prompts):
-      if self.vcn_noise != None:
-          x = self.vcn_noise
-      else:
-          x = create_random_tensors([opt_C, self.height // opt_f, self.width // opt_f],
-                                    seeds=seeds,
-                                    subseeds=subseeds,
-                                    subseed_strength=self.subseed_strength,
-                                    seed_resize_from_h=self.seed_resize_from_h,
-                                    seed_resize_from_w=self.seed_resize_from_w,
-                                    p=self)
+      x = create_random_tensors([opt_C, self.height // opt_f, self.width // opt_f],
+                                seeds=seeds,
+                                subseeds=subseeds,
+                                subseed_strength=self.subseed_strength,
+                                seed_resize_from_h=self.seed_resize_from_h,
+                                seed_resize_from_w=self.seed_resize_from_w,
+                                p=self)
 
       if self.vcn_flows != None and len(self.vcn_flows) > 0:
 
-          max_epochs = [self.vcn_max_epochs]
-          if isinstance(self.vcn_max_epochs, list):
-              max_epochs = self.vcn_max_epochs
+          max_latent_epochs = [self.vcn_max_latent_epochs]
+          if isinstance(self.vcn_max_latent_epochs, list):
+              max_latent_epochs = self.vcn_max_latent_epochs
+
+          max_noise_epochs = [self.vcn_max_noise_epochs]
+          if isinstance(self.vcn_max_noise_epochs, list):
+              max_noise_epochs = self.vcn_max_noise_epochs
 
           vcn_flow_error_scale = [self.vcn_flow_error_scale]
           if isinstance(self.vcn_flow_error_scale, list):
@@ -239,8 +240,21 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           self.loss_history = []
 
           power = 0
-          for epochs in max_epochs:
-              x = self.temporal_consistency_optimization(self.init_latent.detach(),
+          for epochs in max_latent_epochs:
+              self.init_latent = self.temporal_consistency_optimization(self.init_latent.detach(),
+                                                         conditioning,
+                                                         unconditional_conditioning,
+                                                         prompts,
+                                                         vcn_max_epochs=epochs,
+                                                         vcn_optimizer_lr=self.vcn_optimizer_lr[power],
+                                                         vcn_flow_error_scale=vcn_flow_error_scale[power],
+                                                         vcn_warp_error_scale=vcn_warp_error_scale[power],
+                                                         vcn_lineart_error_scale=vcn_lineart_error_scale[power],
+                                                         )
+
+          power = 0
+          for epochs in max_noise_epochs:
+              x = self.temporal_consistency_optimization(x.detach(),
                                                          conditioning,
                                                          unconditional_conditioning,
                                                          prompts,
@@ -252,7 +266,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                                          )
               power = power + 1
 
-          self.vcn_noise = x
 
       if self.initial_noise_multiplier != 1.0:
           self.extra_generation_params["Noise multiplier"] = self.initial_noise_multiplier
@@ -545,10 +558,10 @@ def init():
 
 def infer(controlnets=[],
           sag_enabled=False,
-          vcn_noise = None,
           vcn_flows = [],
           vcn_previous_frames = [],
-          vcn_max_epochs = 50,
+          vcn_max_latent_epochs = 50,
+          vcn_max_noise_epochs = 50,
           vcn_stop_after_inefficient_steps = 20,
           vcn_optimizer_lr = 0.01,
           vcn_scheduler_factor = 0.1,
@@ -562,9 +575,9 @@ def infer(controlnets=[],
       sd_model=shared.sd_model,
       do_not_save_samples=True,
 
-      vcn_noise = None,
       vcn_flows = vcn_flows,
-      vcn_max_epochs = vcn_max_epochs,
+      vcn_max_latent_epochs = vcn_max_latent_epochs,
+      vcn_max_noise_epochs = vcn_max_noise_epochs,
       vcn_previous_frames = vcn_previous_frames,
       vcn_stop_after_inefficient_steps = vcn_stop_after_inefficient_steps,
       vcn_optimizer_lr = vcn_optimizer_lr,
@@ -614,7 +627,6 @@ def infer(controlnets=[],
 
   print("\n====>vram p processed", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
-  processed.vcn_noise = p.vcn_noise
   processed.loss_history = p.loss_history
 
   p.close()
