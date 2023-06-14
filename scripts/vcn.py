@@ -206,14 +206,13 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       if self.vcn_noise != None:
           x = self.vcn_noise
       else:
-          x = self.init_latent
-          # x = create_random_tensors([opt_C, self.height // opt_f, self.width // opt_f],
-          #                           seeds=seeds,
-          #                           subseeds=subseeds,
-          #                           subseed_strength=self.subseed_strength,
-          #                           seed_resize_from_h=self.seed_resize_from_h,
-          #                           seed_resize_from_w=self.seed_resize_from_w,
-          #                           p=self)
+          x = create_random_tensors([opt_C, self.height // opt_f, self.width // opt_f],
+                                    seeds=seeds,
+                                    subseeds=subseeds,
+                                    subseed_strength=self.subseed_strength,
+                                    seed_resize_from_h=self.seed_resize_from_h,
+                                    seed_resize_from_w=self.seed_resize_from_w,
+                                    p=self)
 
       if self.vcn_flows != None and len(self.vcn_flows) > 0:
 
@@ -241,7 +240,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
           power = 0
           for epochs in max_epochs:
-              x = self.temporal_consistency_optimization(x.detach(),
+              x = self.temporal_consistency_optimization(self.init_latent.detach(),
                                                          conditioning,
                                                          unconditional_conditioning,
                                                          prompts,
