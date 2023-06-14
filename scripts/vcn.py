@@ -275,8 +275,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           images = decode(samples)
           delta = fidelity_oriented_zeroshot_encoding(images)
           print("\n===>", samples.shape, delta.shape)
-          print("\n===>", (samples - delta).shape)
-          samples = encode(samples - delta)
+          print("\n===>", (images - delta).shape)
+          samples = encode(images - delta)
 
       return samples
 
