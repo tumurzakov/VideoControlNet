@@ -272,8 +272,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       devices.torch_gc()
 
       if self.vcn_fidelity_oriented_compensation:
-          delta = self.fidelity_oriented_zeroshot_encoding_latent(samples)
-          samples = samples - delta
+          images = decode(samples)
+          delta = self.fidelity_oriented_zeroshot_encoding(images)
+          samples = encode(samples - delta)
 
       return samples
 
