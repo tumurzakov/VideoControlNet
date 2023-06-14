@@ -429,6 +429,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       """
       2306.07954
       """
+      print("\n====>", latent.shape)
       image1 = decode(latent)
       latent1 = encode(image1)
       image2 = decode(latent1)
