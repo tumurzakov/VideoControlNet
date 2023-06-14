@@ -721,14 +721,14 @@ def hash_tensor(tensor):
 
 def encode(image):
   image = image.half() / 255.0
-  image = image.permute(2, 0, 1)
+  image = image.permute(0, 3, 1, 2)
   image = 2. * image - 1
   latent = shared.sd_model.get_first_stage_encoding(shared.sd_model.encode_first_stage(image))
   return latent
 
 def decode(latent):
-  image = shared.sd_model.decode_first_stage(latent.half())[0]
+  image = shared.sd_model.decode_first_stage(latent.half())
   image = torch.clamp((image + 1.0) / 2.0, min=0.0, max=1.0)
   image = image * 255.0
-  image = image.permute(1, 2, 0)
+  image = image.permute(0, 3, 2, 1)
   return image
