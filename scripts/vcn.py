@@ -166,6 +166,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_flow_error_scale = 1,
                vcn_lineart_error_scale = 1,
                vcn_error_percentile = 0.9,
+               vcn_fidelity_oriented_compensation = False,
                **kwargs):
 
     super().__init__(**kwargs)
@@ -188,6 +189,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     self.raft_model = None
     self.lineart_detector = None
+
+    self.vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation
 
     self.loss_history = []
 
@@ -267,6 +270,11 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       del x
       devices.torch_gc()
+
+      if self.vcn_fidelity_oriented_compensation:
+          for i in range(len(samples)):
+              delta = self.fidelity(samples[i])
+              samples[i] = samples[i] - delta
 
       return samples
 
@@ -406,6 +414,16 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       print("\n====>vram get_flow end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
       return flow
+
+  def fidelity_oriented_zeroshot_encoding(self, image):
+      """
+      2306.07954
+      """
+      latent1 = self.sd_model.first_stage_model.encode(image)
+      image1 = self.sd_model.first_stage_model.decode(latent1)
+      latent2 = self.sd_model.f_ty_oriented_zeroshot_encodingstage_model.encode(image1)
+      image2 = self.sd_model.first_stage_model.decode(latent2)
+      return image - image2
 
   def temporal_consistency_optimization(self,
                                         init_latent,
