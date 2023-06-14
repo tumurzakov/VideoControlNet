@@ -273,7 +273,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       if self.vcn_fidelity_oriented_compensation:
           images = decode(samples)
-          delta = self.fidelity_oriented_zeroshot_encoding(images)
+          delta = fidelity_oriented_zeroshot_encoding(images)
           samples = encode(samples - delta)
 
       return samples
@@ -414,26 +414,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       print("\n====>vram get_flow end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
       return flow
-
-  def fidelity_oriented_zeroshot_encoding(self, image):
-      """
-      2306.07954
-      """
-      latent1 = encode(image)
-      image1 = decode(latent1)
-      latent2 = encode(image1)
-      image2 = decode(latent2)
-      return image - image2
-
-  def fidelity_oriented_zeroshot_encoding_latent(self, latent):
-      """
-      2306.07954
-      """
-      image1 = decode(latent)
-      latent1 = encode(image1)
-      image2 = decode(latent1)
-      latent2 = encode(image2)
-      return latent - latent2
 
   def temporal_consistency_optimization(self,
                                         init_latent,
@@ -733,3 +713,23 @@ def decode(latent):
   image = image * 255.0
   image = image.permute(0, 3, 2, 1)
   return image
+
+def fidelity_oriented_zeroshot_encoding(self, image):
+  """
+  2306.07954
+  """
+  latent1 = encode(image)
+  image1 = decode(latent1)
+  latent2 = encode(image1)
+  image2 = decode(latent2)
+  return image - image2
+
+def fidelity_oriented_zeroshot_encoding_latent(self, latent):
+  """
+  2306.07954
+  """
+  image1 = decode(latent)
+  latent1 = encode(image1)
+  image2 = decode(latent1)
+  latent2 = encode(image2)
+  return latent - latent2
