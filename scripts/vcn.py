@@ -235,9 +235,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
           power = 0
           for epochs in max_epochs:
-              self.init_latent = self.temporal_consistency_optimization(
-                                                         self.init_latent,
-                                                         x,
+              self.init_latent, x = self.temporal_consistency_optimization(
+                                                         self.init_latent.detach(),
+                                                         x.detach(),
                                                          conditioning,
                                                          unconditional_conditioning,
                                                          prompts,
@@ -466,7 +466,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       print("\n====>vram epoch", epoch, torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
-      optimizer.zero_grad ()
+      optimizer_noise.zero_grad ()
+      optimizer_latent.zero_grad ()
 
       with torch.enable_grad():
         try:
@@ -527,8 +528,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       optimizer_noise.step()
       optimizer_latent.step()
 
-      current_lr = optimizer.param_groups[0]['lr']
-      print("\n===> loss", epoch, loss.item(), current_lr, hash_tensor(init_latent), hash_tensor(nosie))
+      current_latent_lr = optimizer_latent.param_groups[0]['lr']
+      current_noise_lr = optimizer_noise.param_groups[0]['lr']
+      print("\n===> loss", epoch, loss.item(), current_latent_lr, current_noise_lr, hash_tensor(init_latent), hash_tensor(nosie))
       print("\n====>vram loop end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
     print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_x))
