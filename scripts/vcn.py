@@ -274,6 +274,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       if self.vcn_fidelity_oriented_compensation:
           images = decode(samples)
           delta = fidelity_oriented_zeroshot_encoding(images)
+          print("\n===>", samples.shape, delta.shape, (samples - delta).shape)
           samples = encode(samples - delta)
 
       return samples
