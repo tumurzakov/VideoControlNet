@@ -425,6 +425,16 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       image2 = self.sd_model.first_stage_model.decode(latent2)
       return image - image2
 
+  def fidelity_oriented_zeroshot_encoding_latent(self, latent):
+      """
+      2306.07954
+      """
+      image1 = self.sd_model.first_stage_model.decode(latent)
+      latent1 = self.sd_model.f_ty_oriented_zeroshot_encodingstage_model.encode(image1)
+      image2 = self.sd_model.first_stage_model.decode(latent1)
+      latent2 = self.sd_model.first_stage_model.encode(image2)
+      return latent - latent2
+
   def temporal_consistency_optimization(self,
                                         init_latent,
                                         noise,
