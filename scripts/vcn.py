@@ -241,7 +241,11 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
           power = 0
           for epochs in max_latent_epochs:
-              self.init_latent = self.temporal_consistency_optimization(self.init_latent.detach(),
+              self.init_latent = self.temporal_consistency_optimization(
+                                                         self.init_latent.detach(),
+                                                         'init_latent',
+                                                         self.init_latent,
+                                                         x,
                                                          conditioning,
                                                          unconditional_conditioning,
                                                          prompts,
@@ -254,7 +258,11 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
           power = 0
           for epochs in max_noise_epochs:
-              x = self.temporal_consistency_optimization(x.detach(),
+              x = self.temporal_consistency_optimization(
+                                                         x.detach(),
+                                                         'noise',
+                                                         self.init_latent,
+                                                         x,
                                                          conditioning,
                                                          unconditional_conditioning,
                                                          prompts,
@@ -424,6 +432,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       return flow
 
   def temporal_consistency_optimization(self,
+                                        x,
+                                        what,
+                                        init_latent,
                                         noise,
                                         conditioning,
                                         unconditional_conditioning,
@@ -448,11 +459,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.sd_model.eval()
 
     vcn_minimal_loss = None
-    optimal_noise = noise
+    optimal_x = x
 
-    noise.requires_grad_(True)
-    self.init_latent.requires_grad_(True)
-    optimizer = torch.optim.AdamW([noise], lr=vcn_optimizer_lr)
+    x.requires_grad_(True)
+    optimizer = torch.optim.AdamW([x], lr=vcn_optimizer_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                            mode='min',
                                                            factor=self.vcn_scheduler_factor,
@@ -486,8 +496,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       with torch.enable_grad():
         try:
             samples_ddim = self.sampler.sample_img2img(self,
-              self.init_latent,
-              noise,
+              x if what == 'init_latent' else init_latent,
+              x if what == 'noise' else noise,
               conditioning,
               unconditional_conditioning,
               image_conditioning=self.image_conditioning,
@@ -533,7 +543,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
           vcn_minimal_loss = loss
-          optimal_noise = noise.clone()
+          optimal_x = x.clone()
 
       print("\n====>vram backward", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
@@ -550,7 +560,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_noise))
     print("\n====>vram end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
-    return optimal_noise
+    return optimal_x
 
 
 def init():
