@@ -721,7 +721,7 @@ def hash_tensor(tensor):
 
 def encode(image):
   image = image.half() / 255.0
-  image = image.permute(1, 2, 0)
+  image = image.permute(2, 0, 1)
   image = 2. * image - 1
   latent = shared.sd_model.get_first_stage_encoding(shared.sd_model.encode_first_stage(image))
   return latent
