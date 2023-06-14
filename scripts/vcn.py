@@ -719,15 +719,14 @@ def hash_tensor(tensor):
     hash_value = hashlib.sha256(tensor_bytes).hexdigest()
     return hash_value
 
-def encode(image):
-  image = image.astype(np.float16) / 255.0
-  image = np.moveaxis(image, 2, 0)
+def encode(images):
+  image = image.half() / 255.0
+  image = image.permute(1, 2, 0)
   image = 2. * image - 1
-  image = torch.tensor([image]).to('cuda')
   latent = shared.sd_model.get_first_stage_encoding(shared.sd_model.encode_first_stage(image))
   return latent
 
-def decode(latent):
+def decode(latents):
   image = shared.sd_model.decode_first_stage(latent.half())[0]
   image = torch.clamp((image + 1.0) / 2.0, min=0.0, max=1.0)
   image = image * 255.0
