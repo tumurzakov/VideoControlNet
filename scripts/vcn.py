@@ -568,6 +568,7 @@ def infer(controlnets=[],
           vcn_scheduler_factor = 0.1,
           vcn_scheduler_patience = 5,
           vcn_sample_steps = 10,
+          vcn_fidelity_oriented_compensation = False,
           **kwargs):
 
   print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
@@ -583,6 +584,7 @@ def infer(controlnets=[],
       vcn_scheduler_factor = vcn_scheduler_factor,
       vcn_scheduler_patience = vcn_scheduler_patience,
       vcn_sample_steps = vcn_sample_steps,
+      vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation,
 
       **kwargs
   )
