@@ -167,6 +167,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_warp_error_scale = 1,
                vcn_flow_error_scale = 1,
                vcn_lineart_error_scale = 1,
+               vcn_error_percentile = 0.9,
                **kwargs):
 
     super().__init__(**kwargs)
@@ -187,6 +188,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_warp_error_scale = vcn_warp_error_scale
     self.vcn_flow_error_scale = vcn_flow_error_scale
     self.vcn_lineart_error_scale = vcn_lineart_error_scale
+    self.vcn_error_percentile = vcn_error_percentile
 
     self.raft_model = None
     self.lineart_detector = None
@@ -350,19 +352,19 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         err1 = torch.tensor(0).to('cuda')
         if warped != None:
             err1 = (torch . where ( warped != 0 , warped - ref , 0) ** 2).reshape(-1)
-            err1 = torch.kthvalue(err1, int((90 / 100) * err1.numel())).values # 90%%
+            err1 = torch.kthvalue(err1, int(self.vcn_error_percentile * err1.numel())).values # percentile
             print("\n===> warp_err", err1, vcn_warp_error_scale, err1*vcn_warp_error_scale)
 
         err2 = torch.tensor(0).to('cuda')
         if flow != None:
             err2 = (torch . where ( flow != 0 , ref_flow - flow , 0) ** 2).reshape(-1)
-            err2 = torch.kthvalue(err2, int((90 / 100) * err2.numel())).values # 90%%
+            err2 = torch.kthvalue(err2, int(self.vcn_error_percentile * err2.numel())).values # 90%%
             print("\n===> flow_err", err2, vcn_flow_error_scale, err2*vcn_flow_error_scale)
 
         err3 = torch.tensor(0).to('cuda')
         if lineart != None:
             err3 = (torch . where ( lineart != 0 , ref_lineart - lineart , 0) ** 2).reshape(-1)
-            err3 = torch.kthvalue(err3, int((90 / 100) * err3.numel())).values # 90%%
+            err3 = torch.kthvalue(err3, int(self.vcn_error_percentile * err3.numel())).values # 90%%
             print("\n===> lineart_err", err3, vcn_lineart_error_scale, err3*vcn_lineart_error_scale)
 
         err = vcn_warp_error_scale * err1 + vcn_flow_error_scale * err2 + vcn_lineart_error_scale * err3
