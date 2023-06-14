@@ -273,7 +273,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       if self.vcn_fidelity_oriented_compensation:
           for i in range(len(samples)):
-              delta = self.fidelity_oriented_zeroshot_encoding(samples[i])
+              delta = self.fidelity_oriented_zeroshot_encoding_latent(samples[i])
               samples[i] = samples[i] - delta
 
       return samples
