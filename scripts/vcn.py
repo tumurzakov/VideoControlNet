@@ -403,7 +403,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       flow = list_of_flows[-1].squeeze(0).permute(1,2,0)
 
-      print("\n====>vram get_flow end", torch.cuda.memory_allocated('cuda') / 1024**3)
+      print("\n====>vram get_flow end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
       return flow
 
