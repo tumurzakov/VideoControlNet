@@ -434,7 +434,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     vcn_minimal_loss = None
 
-    optimal_init_latent = init_latent
+    optimal_latent = init_latent
     optimal_noise = noise
 
     init_latent.requires_grad_(True)
@@ -519,7 +519,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
         if vcn_minimal_loss == None or loss < vcn_minimal_loss:
           vcn_minimal_loss = loss
-          optimal_init_latent = init_latent.clone()
+          optimal_latent = init_latent.clone()
           optimal_noise = noise
 
       print("\n====>vram backward", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
@@ -533,9 +533,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       print("\n===> loss", epoch, loss.item(), current_latent_lr, current_noise_lr, hash_tensor(init_latent), hash_tensor(noise))
       print("\n====>vram loop end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
-    print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_x))
+    print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_noise), hash_tensor(optimal_latent))
     print("\n====>vram end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
-    return optimal_init_latent, optimal_noise
+    return optimal_latent, optimal_noise
 
 
 def init():
