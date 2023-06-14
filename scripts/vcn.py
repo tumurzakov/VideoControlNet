@@ -157,8 +157,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
   def __init__(self,
                vcn_flows = [],
                vcn_previous_frames = [],
-               vcn_max_noise_epochs = 50,
-               vcn_max_latent_epochs = 50,
+               vcn_max_epochs = 50,
+               vcn_max_noise_epochs = 0,
+               vcn_max_latent_epochs = 0,
                vcn_stop_after_inefficient_steps = 20,
                vcn_optimizer_lr = 0.01,
                vcn_scheduler_factor = 0.1,
@@ -176,6 +177,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     for flow in vcn_flows:
         self.vcn_flows.append(flow.to('cuda'))
 
+    self.vcn_max_epochs = vcn_max_epochs
     self.vcn_max_latent_epochs = vcn_max_latent_epochs
     self.vcn_max_noise_epochs = vcn_max_noise_epochs
     self.vcn_previous_frames = vcn_previous_frames
@@ -214,6 +216,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                                 p=self)
 
       if self.vcn_flows != None and len(self.vcn_flows) > 0:
+
+          max_epochs = [self.vcn_max_epochs]
+          if isinstance(self.vcn_max_epochs, list):
+              max_epochs = self.vcn_max_epochs
 
           max_latent_epochs = [self.vcn_max_latent_epochs]
           if isinstance(self.vcn_max_latent_epochs, list):
@@ -260,6 +266,39 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
           power = 0
           for epochs in max_noise_epochs:
+              x = self.temporal_consistency_optimization(
+                                                         x.detach(),
+                                                         'noise',
+                                                         self.init_latent,
+                                                         x,
+                                                         conditioning,
+                                                         unconditional_conditioning,
+                                                         prompts,
+                                                         vcn_max_epochs=epochs,
+                                                         vcn_optimizer_lr=self.vcn_optimizer_lr[power],
+                                                         vcn_flow_error_scale=vcn_flow_error_scale[power],
+                                                         vcn_warp_error_scale=vcn_warp_error_scale[power],
+                                                         vcn_lineart_error_scale=vcn_lineart_error_scale[power],
+                                                         )
+              power = power + 1
+
+          power = 0
+          for epochs in max_epochs:
+              self.init_latent = self.temporal_consistency_optimization(
+                                                         self.init_latent.detach(),
+                                                         'init_latent',
+                                                         self.init_latent,
+                                                         x,
+                                                         conditioning,
+                                                         unconditional_conditioning,
+                                                         prompts,
+                                                         vcn_max_epochs=epochs,
+                                                         vcn_optimizer_lr=self.vcn_optimizer_lr[power],
+                                                         vcn_flow_error_scale=vcn_flow_error_scale[power],
+                                                         vcn_warp_error_scale=vcn_warp_error_scale[power],
+                                                         vcn_lineart_error_scale=vcn_lineart_error_scale[power],
+                                                         )
+
               x = self.temporal_consistency_optimization(
                                                          x.detach(),
                                                          'noise',
