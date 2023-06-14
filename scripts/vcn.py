@@ -272,9 +272,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       devices.torch_gc()
 
       if self.vcn_fidelity_oriented_compensation:
-          for i in range(len(samples)):
-              delta = self.fidelity_oriented_zeroshot_encoding_latent(samples[i])
-              samples[i] = samples[i] - delta
+          delta = self.fidelity_oriented_zeroshot_encoding_latent(samples)
+          samples = samples - delta
 
       return samples
 
@@ -429,7 +428,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       """
       2306.07954
       """
-      print("\n====>", latent.shape)
       image1 = decode(latent)
       latent1 = encode(image1)
       image2 = decode(latent1)
