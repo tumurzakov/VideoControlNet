@@ -555,10 +555,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
         break
 
       current_lr = optimizer.param_groups[0]['lr']
-      print("\n===> loss", epoch, loss.item(), current_lr, hash_tensor(noise))
+      print("\n===> loss", epoch, loss.item(), current_lr, hash_tensor(x))
       print("\n====>vram loop end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
-    print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_noise))
+    print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_x))
     print("\n====>vram end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
     return optimal_x
 
