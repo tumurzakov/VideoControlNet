@@ -419,21 +419,20 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       """
       2306.07954
       """
-      latent1 = self.sd_model.first_stage_model.encode(image)
-      image1 = self.sd_model.first_stage_model.decode(latent1)
-      latent2 = self.sd_model.f_ty_oriented_zeroshot_encodingstage_model.encode(image1)
-      image2 = self.sd_model.first_stage_model.decode(latent2)
+      latent1 = encode(image)
+      image1 = decode(latent1)
+      latent2 = encode(image1)
+      image2 = decode(latent2)
       return image - image2
 
   def fidelity_oriented_zeroshot_encoding_latent(self, latent):
       """
       2306.07954
       """
-      print("\n===>latent", latent.shape)
-      image1 = self.sd_model.decode_first_stage(latent)
-      latent1 = self.sd_model.encode_first_stage(image1)
-      image2 = self.sd_model.decode_first_stage(latent1)
-      latent2 = self.sd_model.encode_first_stage(image2)
+      image1 = decode(latent)
+      latent1 = encode(image1)
+      image2 = decode(latent1)
+      latent2 = encode(image2)
       return latent - latent2
 
   def temporal_consistency_optimization(self,
@@ -720,3 +719,18 @@ def hash_tensor(tensor):
     tensor_bytes = tensor_np.tobytes()
     hash_value = hashlib.sha256(tensor_bytes).hexdigest()
     return hash_value
+
+def encode(image):
+  image = image.astype(np.float16) / 255.0
+  image = np.moveaxis(image, 2, 0)
+  image = 2. * image - 1
+  image = torch.tensor([image]).to('cuda')
+  latent = shared.sd_model.get_first_stage_encoding(shared.sd_model.encode_first_stage(image))
+  return latent
+
+def decode(latent):
+  image = shared.sd_model.decode_first_stage(latent.half())[0]
+  image = torch.clamp((image + 1.0) / 2.0, min=0.0, max=1.0)
+  image = image * 255.0
+  image = image.permute(1, 2, 0)
+  return image
