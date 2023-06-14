@@ -530,7 +530,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       current_latent_lr = optimizer_latent.param_groups[0]['lr']
       current_noise_lr = optimizer_noise.param_groups[0]['lr']
-      print("\n===> loss", epoch, loss.item(), current_latent_lr, current_noise_lr, hash_tensor(init_latent), hash_tensor(nosie))
+      print("\n===> loss", epoch, loss.item(), current_latent_lr, current_noise_lr, hash_tensor(init_latent), hash_tensor(noise))
       print("\n====>vram loop end", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
     print("\n====> final", vcn_minimal_loss, hash_tensor(optimal_x))
