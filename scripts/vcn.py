@@ -274,8 +274,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       if self.vcn_fidelity_oriented_compensation:
           images = decode(samples)
           delta = fidelity_oriented_zeroshot_encoding(images)
-          print("\n===>", samples.shape, delta.shape)
-          print("\n===>", (images - delta).shape)
           samples = encode(images - delta)
 
       return samples
@@ -713,7 +711,7 @@ def decode(latent):
   image = shared.sd_model.decode_first_stage(latent.half())
   image = torch.clamp((image + 1.0) / 2.0, min=0.0, max=1.0)
   image = image * 255.0
-  image = image.permute(0, 3, 2, 1)
+  image = image.permute(0, 2, 3, 1)
   return image
 
 def fidelity_oriented_zeroshot_encoding(image):
