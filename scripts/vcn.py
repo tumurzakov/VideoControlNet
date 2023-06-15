@@ -170,6 +170,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_fidelity_oriented_compensation = False,
                vcn_adain = False,
                vcn_blur = False,
+               vcn_blur_kernel = 9,
+               vcn_blur_sigma = 1.0,
                **kwargs):
 
     super().__init__(**kwargs)
@@ -196,6 +198,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation
     self.vcn_adain = vcn_adain
     self.vcn_blur = vcn_blur
+    self.vcn_blur_kernel = vcn_blur_kernel,
+    self.vcn_blur_sigma = vcn_blur_sigma,
 
     self.loss_history = []
 
@@ -264,7 +268,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           x *= self.initial_noise_multiplier
 
       if self.vcn_blur:
-          self.init_latent = gaussian_blur_2d(self.init_latent, kernel_size=9, sigma=1.0)
+          self.init_latent = gaussian_blur_2d(self.init_latent,
+                                              kernel_size=self.vcn_blur_kernel,
+                                              sigma=self.vcn_blur_sigma)
 
       samples = self.sampler.sample_img2img(self,
                                             self.init_latent,
@@ -574,6 +580,8 @@ def infer(controlnets=[],
           vcn_fidelity_oriented_compensation = False,
           vcn_adain = False,
           vcn_blur = False,
+          vcn_blur_kernel = 9,
+          vcn_blur_sigma = 1.0,
           **kwargs):
 
   print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
@@ -592,6 +600,8 @@ def infer(controlnets=[],
       vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation,
       vcn_adain = vcn_adain,
       vcn_blur = vcn_blur,
+      vcn_blur_kernel = vcn_blur_kernel,
+      vcn_blur_sigma = vcn_blur_sigma,
 
       **kwargs
   )
