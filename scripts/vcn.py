@@ -168,6 +168,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_error_percentile = 0.9,
                vcn_fidelity_oriented_compensation = False,
                vcn_adain = False,
+               vcn_blur = False,
                **kwargs):
 
     super().__init__(**kwargs)
@@ -193,6 +194,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     self.vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation
     self.vcn_adain = vcn_adain
+    self.vcn_blur = vcn_blur
 
     self.loss_history = []
 
@@ -260,6 +262,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           self.extra_generation_params["Noise multiplier"] = self.initial_noise_multiplier
           x *= self.initial_noise_multiplier
 
+      if self.vcn_blur:
+          self.init_latent = gaussian_blur_2d(self.init_latent, kernel_size=9, sigma=1.0)
+
       samples = self.sampler.sample_img2img(self,
                                             self.init_latent,
                                             x,
@@ -282,7 +287,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                   samples,
                   encode(prev.to('cuda'))
                   )
-
 
       return samples
 
@@ -568,6 +572,7 @@ def infer(controlnets=[],
           vcn_sample_steps = 10,
           vcn_fidelity_oriented_compensation = False,
           vcn_adain = False,
+          vcn_blur = False,
           **kwargs):
 
   print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
@@ -585,6 +590,7 @@ def infer(controlnets=[],
       vcn_sample_steps = vcn_sample_steps,
       vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation,
       vcn_adain = vcn_adain,
+      vcn_blur = vcn_blur,
 
       **kwargs
   )
@@ -799,3 +805,24 @@ def coral(source, target):
                         target_f_mean.expand_as(source_f_norm)
 
     return source_f_transfer.view(source.size())
+
+# https://github.com/ashen-sensored/sd_webui_SAG
+def gaussian_blur_2d(img, kernel_size, sigma):
+    ksize_half = (kernel_size - 1) * 0.5
+
+    x = torch.linspace(-ksize_half, ksize_half, steps=kernel_size)
+
+    pdf = torch.exp(-0.5 * (x / sigma).pow(2))
+
+    x_kernel = pdf / pdf.sum()
+    x_kernel = x_kernel.to(device=img.device, dtype=img.dtype)
+
+    kernel2d = torch.mm(x_kernel[:, None], x_kernel[None, :])
+    kernel2d = kernel2d.expand(img.shape[-3], 1, kernel2d.shape[0], kernel2d.shape[1])
+
+    padding = [kernel_size // 2, kernel_size // 2, kernel_size // 2, kernel_size // 2]
+
+    img = F.pad(img, padding, mode="reflect")
+    img = F.conv2d(img, kernel2d, groups=img.shape[-3])
+
+    return img
