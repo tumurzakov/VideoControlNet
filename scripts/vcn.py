@@ -277,7 +277,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           samples = fidelity_oriented_zeroshot_encoding(samples)
 
       if self.vcn_adain:
-          samples = adaptive_instance_normalization(samples, [encode(vcn_previous_frames[0])])
+          samples = adaptive_instance_normalization(samples, [encode(self.vcn_previous_frames[0])])
 
       return samples
 
