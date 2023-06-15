@@ -741,14 +741,18 @@ def decode(latent):
   image = image.permute(0, 2, 3, 1)
   return image
 
-def fidelity_oriented_zeroshot_encoding(x0r):
+def fidelity_oriented_zeroshot_encoding(x0r, l=0.1):
   """
   2306.07954
   """
 
   x0rr = encode(decode(x0r))
 
-  return x0r + (x0r - x0rr)
+  corr = x0r - x0rr
+
+  corr = x0r + torch.clamp(corr, min=0.0, max=l)
+
+  return  corr
 
 
 # AdaIN https://github.com/naoto0804/pytorch-AdaIN
