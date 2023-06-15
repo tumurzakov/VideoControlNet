@@ -168,6 +168,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_lineart_error_scale = 1,
                vcn_error_percentile = 0.9,
                vcn_fidelity_oriented_compensation = False,
+               vcn_fidelity_oriented_compensation_mask = 0.1,
                vcn_adain = False,
                vcn_blur = False,
                vcn_blur_kernel = 9,
@@ -196,6 +197,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.lineart_detector = None
 
     self.vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation
+    self.vcn_fidelity_oriented_compensation_mask = vcn_fidelity_oriented_compensation_mask
     self.vcn_adain = vcn_adain
     self.vcn_blur = vcn_blur
     self.vcn_blur_kernel = vcn_blur_kernel
@@ -286,7 +288,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       devices.torch_gc()
 
       if self.vcn_fidelity_oriented_compensation:
-          samples = fidelity_oriented_zeroshot_encoding(samples)
+          samples = fidelity_oriented_zeroshot_encoding(samples, self.vcn_fidelity_oriented_compensation_mask)
 
       if self.vcn_adain:
           prev = torch.tensor([np.array(self.vcn_previous_frames[0])])
@@ -578,6 +580,7 @@ def infer(controlnets=[],
           vcn_scheduler_patience = 5,
           vcn_sample_steps = 10,
           vcn_fidelity_oriented_compensation = False,
+          vcn_fidelity_oriented_compensation_mask = 0.1,
           vcn_adain = False,
           vcn_blur = False,
           vcn_blur_kernel = 9,
@@ -598,6 +601,7 @@ def infer(controlnets=[],
       vcn_scheduler_patience = vcn_scheduler_patience,
       vcn_sample_steps = vcn_sample_steps,
       vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation,
+      vcn_fidelity_oriented_compensation_mask = vcn_fidelity_oriented_compensation_mask
       vcn_adain = vcn_adain,
       vcn_blur = vcn_blur,
       vcn_blur_kernel = vcn_blur_kernel,
