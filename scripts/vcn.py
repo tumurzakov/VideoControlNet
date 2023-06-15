@@ -504,11 +504,6 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       optimizer_latent.zero_grad ()
 
       with torch.enable_grad():
-        if self.vcn_blur:
-            init_latent = gaussian_blur_2d(init_latent,
-                                                kernel_size=self.vcn_blur_kernel,
-                                                sigma=self.vcn_blur_sigma)
-
         try:
             samples_ddim = self.sampler.sample_img2img(self,
               init_latent,
