@@ -504,6 +504,11 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       optimizer_latent.zero_grad ()
 
       with torch.enable_grad():
+        if self.vcn_blur:
+            init_latent = gaussian_blur_2d(init_latent,
+                                                kernel_size=self.vcn_blur_kernel,
+                                                sigma=self.vcn_blur_sigma)
+
         try:
             samples_ddim = self.sampler.sample_img2img(self,
               init_latent,
@@ -515,6 +520,16 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
               )
         except Exception as e:
             print("\n===>Exception", e)
+
+        if self.vcn_fidelity_oriented_compensation:
+            samples_ddim = fidelity_oriented_zeroshot_encoding(samples_ddim, self.vcn_fidelity_oriented_compensation_mask)
+
+        if self.vcn_adain:
+            prev = torch.tensor([np.array(self.vcn_key_frame)])
+            samples_ddim = adaptive_instance_normalization(
+                    samples_ddim,
+                    encode(prev.to('cuda'))
+                    )
 
         x_samples_ddim = [decode_first_stage(self.sd_model, samples_ddim)[0]]
         x_samples_ddim = torch.stack(x_samples_ddim).float()
