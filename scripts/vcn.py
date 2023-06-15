@@ -167,6 +167,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_lineart_error_scale = 1,
                vcn_error_percentile = 0.9,
                vcn_fidelity_oriented_compensation = False,
+               vcn_adain = False,
                **kwargs):
 
     super().__init__(**kwargs)
@@ -191,6 +192,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.lineart_detector = None
 
     self.vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation
+    self.vcn_adain = vcn_adain
 
     self.loss_history = []
 
@@ -560,6 +562,7 @@ def infer(controlnets=[],
           vcn_scheduler_patience = 5,
           vcn_sample_steps = 10,
           vcn_fidelity_oriented_compensation = False,
+          vcn_adain = False,
           **kwargs):
 
   print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
@@ -576,6 +579,7 @@ def infer(controlnets=[],
       vcn_scheduler_patience = vcn_scheduler_patience,
       vcn_sample_steps = vcn_sample_steps,
       vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation,
+      vcn_adain = vcn_adain,
 
       **kwargs
   )
