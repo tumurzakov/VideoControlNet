@@ -49,6 +49,7 @@ sampling = importlib.import_module("repositories.k-diffusion.k_diffusion.samplin
 from torchvision.models.optical_flow import raft_large
 from torchvision.models.optical_flow import Raft_Large_Weights
 import torchvision.transforms.functional as F
+import torch.nn.functional as Fnn
 
 vram_debug = False
 
@@ -822,7 +823,7 @@ def gaussian_blur_2d(img, kernel_size, sigma):
 
     padding = [kernel_size // 2, kernel_size // 2, kernel_size // 2, kernel_size // 2]
 
-    img = F.pad(img, padding, mode="reflect")
-    img = F.conv2d(img, kernel2d, groups=img.shape[-3])
+    img = Fnn.pad(img, padding, mode="reflect")
+    img = Fnn.conv2d(img, kernel2d, groups=img.shape[-3])
 
     return img
