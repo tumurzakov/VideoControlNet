@@ -198,8 +198,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_fidelity_oriented_compensation = vcn_fidelity_oriented_compensation
     self.vcn_adain = vcn_adain
     self.vcn_blur = vcn_blur
-    self.vcn_blur_kernel = vcn_blur_kernel,
-    self.vcn_blur_sigma = vcn_blur_sigma,
+    self.vcn_blur_kernel = vcn_blur_kernel
+    self.vcn_blur_sigma = vcn_blur_sigma
 
     self.loss_history = []
 
