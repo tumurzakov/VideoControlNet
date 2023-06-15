@@ -277,10 +277,12 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           samples = fidelity_oriented_zeroshot_encoding(samples)
 
       if self.vcn_adain:
+          prev = torch.tensor([np.array(self.vcn_previous_frames[0])])
           samples = adaptive_instance_normalization(
                   samples,
-                  [encode(torch.tensor(np.array(self.vcn_previous_frames[0])))]
+                  encode(prev.to('cuda'))
                   )
+
 
       return samples
 
