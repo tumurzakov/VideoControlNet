@@ -178,7 +178,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
     super().__init__(**kwargs)
 
-    if vcn_key_frame == None:
+    if vcn_key_frame == None and len(vcn_previous_frames) > 0:
         vcn_key_frame = vcn_previous_frames[0]
     self.vcn_key_frame = vcn_key_frame
 
