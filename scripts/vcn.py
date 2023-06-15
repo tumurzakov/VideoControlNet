@@ -157,6 +157,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
   def __init__(self,
                vcn_flows = [],
+               vcn_key_frame = None,
                vcn_previous_frames = [],
                vcn_max_epochs = 50,
                vcn_optimizer_lr = 0.01,
@@ -176,6 +177,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                **kwargs):
 
     super().__init__(**kwargs)
+
+    if vcn_key_frame == None:
+        vcn_key_frame = vcn_previous_frames[0]
+    self.vcn_key_frame = vcn_key_frame
 
     self.vcn_flows = []
     for flow in vcn_flows:
@@ -291,7 +296,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
           samples = fidelity_oriented_zeroshot_encoding(samples, self.vcn_fidelity_oriented_compensation_mask)
 
       if self.vcn_adain:
-          prev = torch.tensor([np.array(self.init_images[0])])
+          prev = torch.tensor([np.array(self.vcn_key_frame)])
           samples = adaptive_instance_normalization(
                   samples,
                   encode(prev.to('cuda'))
@@ -573,6 +578,7 @@ def init():
 def infer(controlnets=[],
           sag_enabled=False,
           vcn_flows = [],
+          vcn_key_frame = None,
           vcn_previous_frames = [],
           vcn_max_epochs = 50,
           vcn_optimizer_lr = 0.01,
@@ -593,6 +599,7 @@ def infer(controlnets=[],
       sd_model=shared.sd_model,
       do_not_save_samples=True,
 
+      vcn_key_frame = vcn_key_frame,
       vcn_flows = vcn_flows,
       vcn_max_epochs = vcn_max_epochs,
       vcn_previous_frames = vcn_previous_frames,
