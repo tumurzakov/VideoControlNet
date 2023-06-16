@@ -862,3 +862,58 @@ def gaussian_blur_2d(img, kernel_size, sigma):
     img = Fnn.conv2d(img, kernel2d, groups=img.shape[-3])
 
     return img
+
+def stack_flows(flows, power):
+    rows = []
+    for i in range(0, len(flows), power):
+        row = []
+        for j in range(power):
+            index = i + j
+            row.append(flows[index])
+        rows.append(torch.cat(row, dim=1))
+    grid = torch.cat(rows, dim=0)
+
+    return grid
+
+def unstack_flows(grid, power, width, height):
+    flows = []
+
+    rows = torch.split(grid, height, dim=1)
+    for row in rows:
+      cols = torch.split(row, width, dim=0)
+      for col in cols:
+        flows.append(col)
+
+    return flows
+
+def reconstruct(grid, last_flow_stack, new_flow_stack, power):
+    images = degrid(grid, power)
+
+    last_flows = unstack_flows(last_flow_stack, power, int(grid.width/power), int(grid.height/power))
+    new_flows = unstack_flows(new_flow_stack, power, int(grid.width/power), int(grid.height/power))
+
+    last_img = images[-1]
+    last_flow = last_flows[-1]
+
+    reconstructed = []
+    flow_sum = last_flow
+    for flow in new_flows:
+        reconstructed.append(warp_cv2(flow_sum, last_img))
+        flow_sum = flow_sum + flow
+
+    reconstructed = engrid(reconstructed)
+    return reconstructed
+
+def warp_cv2(flow, frame):
+  frame = np.array(frame)
+  flow = np.transpose(flow.detach().numpy(), (1,0,2))
+
+  # Convert the flow to a displacement map
+  displacement_map = np.zeros_like(flow)
+  displacement_map[..., 0] = flow[..., 0] + np.arange(frame.shape[1])
+  displacement_map[..., 1] = flow[..., 1] + np.arange(frame.shape[0])[:, np.newaxis]
+
+  # Subtract the flow from frame2 to get frame1
+  reconstructed = cv2.remap(frame, displacement_map, None, cv2.INTER_LINEAR)
+
+  return Image.fromarray(reconstructed.astype(np.uint8))
