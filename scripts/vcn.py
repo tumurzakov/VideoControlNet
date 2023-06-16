@@ -914,6 +914,6 @@ def warp_cv2(flow, frame):
   displacement_map[..., 1] = flow[..., 1] + np.arange(frame.shape[0])[:, np.newaxis]
 
   # Subtract the flow from frame2 to get frame1
-  reconstructed = cv2.remap(frame, displacement_map, None, cv2.INTER_LINEAR)
+  reconstructed = cv.remap(frame, displacement_map, None, cv.INTER_LINEAR)
 
   return Image.fromarray(reconstructed.astype(np.uint8))
