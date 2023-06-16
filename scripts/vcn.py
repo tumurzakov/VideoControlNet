@@ -608,10 +608,14 @@ def infer(controlnets=[],
           vcn_blur = False,
           vcn_blur_kernel = 9,
           vcn_blur_sigma = 1.0,
+
           upscaler_image = None,
           upscaler_index = 0,
           upscaler_tile_width = 512,
           upscaler_tile_height = 512,
+          upscaler_redraw_mode = 'Linear',
+          upscaler_padding = 32,
+          upscaler_mask_blur = 4,
           **kwargs):
 
   print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
@@ -697,6 +701,7 @@ def infer(controlnets=[],
         )
 
       upscaler.upscale()
+      upscaler.setup_redraw(upscaler_redraw_mode, upscaler_padding, upscaler_mask_blur)
       upscaler.process()
       processed = Processed(p, upscaler.result_images)
 
