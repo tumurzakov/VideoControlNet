@@ -28,6 +28,7 @@ from modules.realesrgan_model import get_realesrgan_models
 from modules import devices
 from typing import List
 from einops import rearrange
+from modules.processing import Processed
 
 import piexif
 import piexif.helper
@@ -696,7 +697,8 @@ def infer(controlnets=[],
         )
 
       upscaler.upscale()
-      processed = upscaler.image
+      upscaler.process()
+      processed = Processed(p, upscaler.result_images)
 
       print("\n====>vram upscale", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
