@@ -670,7 +670,7 @@ def infer(controlnets=[],
 
   print("\n====>vram p init", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
-  if upscale_factor == None:
+  if upscaler_image == None:
       shared.state.begin()
       processed = process_images(p)
       shared.state.end()
