@@ -613,7 +613,7 @@ def infer(controlnets=[],
           upscaler_index = 0,
           upscaler_tile_width = 512,
           upscaler_tile_height = 512,
-          upscaler_redraw_mode = 'Linear',
+          upscaler_redraw_mode = 0,
           upscaler_padding = 32,
           upscaler_mask_blur = 4,
           **kwargs):
