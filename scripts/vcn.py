@@ -709,6 +709,7 @@ def infer(controlnets=[],
       upscaler.upscale()
       upscaler.setup_redraw(upscaler_redraw_mode, upscaler_padding, upscaler_mask_blur)
       upscaler.setup_seams_fix(upscaler_seams_fix_padding, upscaler_seams_fix_denoise, upscaler_seams_fix_mask_blur, upscaler_seams_fix_width, upscaler_seams_fix_type)
+      upscaler.print_info()
       upscaler.process()
       processed = Processed(p, upscaler.result_images)
 
