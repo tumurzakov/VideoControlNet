@@ -587,6 +587,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 def init():
   load_cnet_models()
 
+  print("\n===>SD Upscalers")
+  for i in range(len(shared.sd_upscalers)):
+      print("\n===>", i, shared.sd_upscalers[i].name)
+
 def infer(controlnets=[],
           sag_enabled=False,
           vcn_flows = [],
@@ -603,8 +607,10 @@ def infer(controlnets=[],
           vcn_blur = False,
           vcn_blur_kernel = 9,
           vcn_blur_sigma = 1.0,
-          upscale_image = None,
-          upscale_factor = None,
+          upscaler_image = None,
+          upscaler_index = 0,
+          upscaler_tile_width = 512,
+          upscaler_tile_height = 512,
           **kwargs):
 
   print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
@@ -681,8 +687,12 @@ def infer(controlnets=[],
   else:
       upscaler = upscale.USDUpscaler(
         p,
-        upscale_image,
-        scale_factor = upscale_factor,
+        upscaler_image,
+        upscaler_index,
+        False,
+        False,
+        upscaler_tile_width,
+        upscaler_tile_height,
         )
 
       upscaler.upscale()
