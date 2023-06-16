@@ -85,6 +85,7 @@ def load_cnet_models():
         cnet_enabled[cnet_module]['model'] = m
         for cnet_module_name in cnet_enabled[cnet_module]['modules']:
           cnet_models[cnet_module_name] = m
+          print("\n===>ControlNetM model",cnet_module_name, m)
 
 def append_cnet_units(units=[], controlnets=[], **kwargs):
 
