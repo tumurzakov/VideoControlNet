@@ -45,6 +45,7 @@ from modules.processing import create_random_tensors, opt_C, opt_f
 from tqdm.auto import trange, tqdm
 utils = importlib.import_module("repositories.k-diffusion.k_diffusion.utils")
 sampling = importlib.import_module("repositories.k-diffusion.k_diffusion.sampling")
+upscale = importlib.import_module("extensions.ultimate-upscale-for-automatic1111.scripts.ultimate-upscale")
 
 from torchvision.models.optical_flow import raft_large
 from torchvision.models.optical_flow import Raft_Large_Weights
@@ -601,6 +602,8 @@ def infer(controlnets=[],
           vcn_blur = False,
           vcn_blur_kernel = 9,
           vcn_blur_sigma = 1.0,
+          upscale_image = None,
+          upscale_factor = None,
           **kwargs):
 
   print("\n====>vram infer", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
@@ -660,18 +663,33 @@ def infer(controlnets=[],
 
   print("\n====>vram p init", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
-  shared.state.begin()
-  processed = process_images(p)
-  shared.state.end()
+  if upscale_factor == None:
+      shared.state.begin()
+      processed = process_images(p)
+      shared.state.end()
 
-  print("\n====>vram p processed", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
+      print("\n====>vram p processed", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
-  processed.loss_history = p.loss_history
+      processed.loss_history = p.loss_history
 
-  p.close()
-  shared.total_tqdm.clear()
+      p.close()
+      shared.total_tqdm.clear()
 
-  print("\n====>vram p close", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
+      print("\n====>vram p close", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
+
+  else:
+      upscaler = upscale.USDUpscaler(
+        p,
+        upscale_image,
+        scale_factor = upscale_factor,
+        )
+
+      upscaler.upscale()
+      processed = upscaler.image
+
+      print("\n====>vram upscale", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
+
+      del upscaler
 
   del p
   devices.torch_gc()
