@@ -35,7 +35,9 @@ import piexif.helper
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-import cv2 as cv
+import cv2
+
+import kornia
 
 import importlib
 import hashlib
@@ -167,6 +169,7 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
                vcn_scheduler_factor = 0.1,
                vcn_scheduler_patience = 5,
                vcn_sample_steps = 10,
+               vcn_warp_func = 'vcn',
                vcn_warp_error_scale = 1,
                vcn_flow_error_scale = 1,
                vcn_lineart_error_scale = 1,
@@ -195,6 +198,8 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
     self.vcn_scheduler_factor = vcn_scheduler_factor
     self.vcn_scheduler_patience = vcn_scheduler_patience
     self.vcn_sample_steps = vcn_sample_steps
+
+    self.vcn_warp_func = vcn_warp_func
 
     self.vcn_warp_error_scale = vcn_warp_error_scale
     self.vcn_flow_error_scale = vcn_flow_error_scale
@@ -308,34 +313,10 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
       return samples
 
   def flow_warping ( self, frame , flow ):
-      """
-      Warp ( t ) th frame to (t -1) th frame
-      args :
-      frame : float tensor in [H , W , 3] format
-      flow : float tensor in [H , W , 2] format
-      """
-      # create a matrix where each entry is its coordinate
-      s = flow . shape [:2]
-      m = np . array ([ i for i in np . ndindex (* s )])
-      meshgrid = torch.from_numpy(m . reshape (* s , len ( s ))).to('cuda')
+    if self.vcn_warp_func == 'kornia':
+  	  return warp_kornia_torch(flow, frame)
 
-      # find the coordinates that the flows point to
-      dest = flow + meshgrid
-
-      # discard out - of - frame flows
-      valid_mask = ((dest >= 0) &
-        (dest < torch.tensor(dest.shape [:2], device='cuda') - 1)).all(-1)
-
-      v_src = meshgrid [ valid_mask ]
-
-      # nearest - neighbor warping
-      v_dst = dest [ valid_mask ]
-      v_dst = v_dst . round (). to ( int )
-
-      valid_pixels = frame [ v_dst [: , 0] , v_dst [: , 1]]
-      frame [ v_src [: , 0] , v_src [: , 1]] = valid_pixels
-
-      return frame
+  	return warp_vcn_torch(flow, frame)
 
   def calc_error(self,
                  x_sample,
@@ -588,9 +569,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 def init():
   load_cnet_models()
 
-  print("\n===>SD Upscalers")
-  for i in range(len(shared.sd_upscalers)):
-      print("\n===>", i, shared.sd_upscalers[i].name)
+  #print("\n===>SD Upscalers")
+  #for i in range(len(shared.sd_upscalers)):
+  #    print("\n===>", i, shared.sd_upscalers[i].name)
 
 def infer(controlnets=[],
           sag_enabled=False,
@@ -725,33 +706,34 @@ def infer(controlnets=[],
   return processed
 
 def engrid(images):
-  power = int(math.sqrt(len(images)))
-  img = images[0]
-  dimx = img.width
-  dimy = img.height
+    power = int(math.sqrt(len(images)))
+    img = images[0]
+    dimx = img.width
+    dimy = img.height
 
-  grid = Image.new(size=(dimx*power, dimy*power), mode='RGB')
+    grid = Image.new(size=(dimx*power, dimy*power), mode='RGB')
 
-  x = 0
-  y = 0
-  for img in images:
-    grid.paste(img, (x*dimx, y*dimy))
-    x = x + 1
-    if x == power:
-      x = 0
-      y = y + 1
+    x = 0
+    y = 0
+    for img in images:
+        grid.paste(img, (x*dimx, y*dimy))
+        x = x + 1
+        if x == power:
+            x = 0
+            y = y + 1
 
-  return grid
+    return grid
 
 def degrid(grid, power):
-  dimx = int(grid.width / power)
-  dimy = int(grid.height / power)
-  images = []
-  for y in range(power):
-    for x in range(power):
-      img = grid.crop((x*dimx, y*dimy, (x+1)*dimx, (y+1)*dimy))
-      images.append(img)
-  return images
+    dimx = int(grid.width / power)
+    dimy = int(grid.height / power)
+    images = []
+    for y in range(power):
+        for x in range(power):
+			img = grid.crop((x*dimx, y*dimy, (x+1)*dimx, (y+1)*dimy))
+			images.append(img)
+
+    return images
 
 def get_flow_field(flow,
                    image,
@@ -793,18 +775,18 @@ def hash_tensor(tensor):
     return hash_value
 
 def encode(image):
-  image = image.half() / 255.0
-  image = image.permute(0, 3, 1, 2)
-  image = 2. * image - 1
-  latent = shared.sd_model.get_first_stage_encoding(shared.sd_model.encode_first_stage(image))
-  return latent
+    image = image.half() / 255.0
+    image = image.permute(0, 3, 1, 2)
+    image = 2. * image - 1
+    latent = shared.sd_model.get_first_stage_encoding(shared.sd_model.encode_first_stage(image))
+    return latent
 
 def decode(latent):
-  image = shared.sd_model.decode_first_stage(latent.half())
-  image = torch.clamp((image + 1.0) / 2.0, min=0.0, max=1.0)
-  image = image * 255.0
-  image = image.permute(0, 2, 3, 1)
-  return image
+    image = shared.sd_model.decode_first_stage(latent.half())
+    image = torch.clamp((image + 1.0) / 2.0, min=0.0, max=1.0)
+    image = image * 255.0
+    image = image.permute(0, 2, 3, 1)
+    return image
 
 def fidelity_oriented_zeroshot_encoding(x0r, l=0.1):
   """
@@ -907,6 +889,24 @@ def gaussian_blur_2d(img, kernel_size, sigma):
 
     return img
 
+def enline(images):
+    width = images[0].width
+    height = images[0].height
+    line = Image.new(size=(width*len(images), height), mode='RGB')
+    for i in range(len(images)):
+        line.paste(images[i], (i*width, 0))
+    return line
+
+def deline(line, power):
+    width = line.width / power**2
+    height = line.height
+    batch_size = power**2
+    images = []
+    for i in range(batch_size):
+        crop = line.crop((i*width, 0, (i+1)*width, height))
+        images.append(crop)
+    return images
+
 def stack_flows(flows, power):
     rows = []
     for i in range(0, len(flows), power):
@@ -924,9 +924,9 @@ def unstack_flows(grid, power, width, height):
 
     rows = torch.split(grid, height, dim=1)
     for row in rows:
-      cols = torch.split(row, width, dim=0)
-      for col in cols:
-        flows.append(col)
+       cols = torch.split(row, width, dim=0)
+       for col in cols:
+           flows.append(col)
 
     return flows
 
@@ -948,16 +948,93 @@ def reconstruct(grid, last_flow_stack, new_flow_stack, power):
     reconstructed = engrid(reconstructed)
     return reconstructed
 
+def warp_vcn_torch(flow, frame):
+    """
+    flow tensor(H,W,2)
+    frame tensor(H,W,C)
+    """
+    flow = flow.to('cuda').permute(1,0,2)
+    # create a matrix where each entry is its coordinate
+    s = flow . shape [:2]
+    m = np . array ([ i for i in np . ndindex (* s )])
+    meshgrid = torch.from_numpy(m . reshape (* s , len ( s ))).to('cuda')
+
+    # find the coordinates that the flows point to
+    dest = flow + meshgrid
+
+    # discard out - of - frame flows
+    valid_mask = ((dest >= 0) &
+      (dest < torch.tensor(dest.shape [:2], device='cuda') - 1)).all(-1)
+
+    v_src = meshgrid [ valid_mask ]
+
+    # nearest - neighbor warping
+    v_dst = dest [ valid_mask ]
+    v_dst = v_dst . round (). to ( int )
+
+    valid_pixels = frame [ v_dst [: , 0] , v_dst [: , 1]]
+    frame [ v_src [: , 0] , v_src [: , 1]] = valid_pixels
+
+    return frame
+
+def warp_vcn(flow, frame):
+    """
+    flow tensor(H,W,2)
+    frame PIL Image
+    """
+
+    frame = torch.tensor(np.array(frame)).to('cuda')
+    frame = warp_vcn_torch(flow, frame)
+
+    return Image.fromarray(frame.detach().cpu().numpy())
+
 def warp_cv2(flow, frame):
-  frame = np.array(frame)
-  flow = np.transpose(flow.detach().numpy(), (1,0,2))
+    """
+    flow tensor(H,W,2)
+    frame PIL Image
+    """
+    frame = np.array(frame)
+    flow = np.transpose(flow.detach().numpy(), (1,0,2))
 
-  # Convert the flow to a displacement map
-  displacement_map = np.zeros_like(flow)
-  displacement_map[..., 0] = flow[..., 0] + np.arange(frame.shape[1])
-  displacement_map[..., 1] = flow[..., 1] + np.arange(frame.shape[0])[:, np.newaxis]
+    # Convert the flow to a displacement map
+    displacement_map = np.zeros_like(flow)
+    displacement_map[..., 0] = flow[..., 0] + np.arange(frame.shape[1])
+    displacement_map[..., 1] = flow[..., 1] + np.arange(frame.shape[0])[:, np.newaxis]
 
-  # Subtract the flow from frame2 to get frame1
-  reconstructed = cv.remap(frame, displacement_map, None, cv.INTER_LINEAR)
+    # Subtract the flow from frame2 to get frame1
+    reconstructed = cv2.remap(frame, displacement_map, None, cv2.INTER_LINEAR)
 
-  return Image.fromarray(reconstructed.astype(np.uint8))
+    return Image.fromarray(reconstructed.astype(np.uint8))
+
+def warp_kornia_torch(flow, frame):
+    """
+    flow tensor(H,W,2)
+    frame tensor(H,W,C)
+    """
+    flow = flow.permute(1,0,2)
+    displacement_map = torch.zeros_like(flow).to('cuda')
+
+    displacement_map[..., 0] = flow[..., 0] + torch.arange(frame.shape[1]).to('cuda')
+    displacement_map[..., 1] = flow[..., 1] + torch.arange(frame.shape[0]).to('cuda')[:, np.newaxis]
+
+    fl1 = torch.stack([displacement_map[:,:,0]])
+    fl2 = torch.stack([displacement_map[:,:,1]])
+
+    frame = frame.permute(2,0,1)
+    frame = torch.stack([frame])
+    reconstructed = kornia.geometry.transform.remap(frame, fl1, fl2).squeeze(0).permute(1,2,0)
+
+    return reconstructed
+
+def warp_kornia(flow, frame):
+    """
+    flow tensor(H,W,2)
+    frame PIL Image
+    """
+    flow = flow.to('cuda')
+    frame = torch.tensor((np.array(frame) / 255).astype(np.float32)).to('cuda')
+
+    reconstructed = warp_kornia_torch(flow, frame)
+
+    tim = (reconstructed.detach().cpu().numpy()*255).astype(np.uint8)
+    return Image.fromarray(tim)
