@@ -34,7 +34,7 @@ class CFAUnit:
 def xattn_forward_log(self, x, context=None, mask=None):
     h = self.heads
 
-    global cfa_previous_contexts, cfa_current_contexts
+    global cfa_previous_contexts, cfa_current_contexts, cfa_index
     cfa_current_contexts.append(x)
 
     q = self.to_q(x)
