@@ -1038,3 +1038,16 @@ def warp_kornia(flow, frame):
 
     tim = (reconstructed.detach().cpu().numpy()*255).astype(np.uint8)
     return Image.fromarray(tim)
+
+def bend(image, flows, batch_size):
+    """
+    Bend image into batch
+    """
+    batch = [image]
+    flow = flows[0]
+    for i in range(1, len(flows)):
+         warp = vcn.warp_cv2(flow, image)
+         if i % batch_size == 0:
+             batch.append(warp)
+         flow = flow + flows[i]
+    return vcn.engrid(batch)
