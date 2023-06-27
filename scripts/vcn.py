@@ -595,6 +595,7 @@ def init():
 def infer(controlnets=[],
           sag_enabled=False,
           cfa_enabled=False,
+          cfa_contexts=None,
           vcn_flows = [],
           vcn_key_frame = None,
           vcn_previous_frames = [],
@@ -655,7 +656,7 @@ def infer(controlnets=[],
   units = []
   units, cnet_args_from, cnet_args_to = append_cnet_units(units, controlnets, **kwargs)
   units, sag_args_from, sag_args_to = append_sag_units(units, sag_enabled, **kwargs)
-  units, cfa_args_from, cfa_args_to = append_cfa_units(units, cfa_enabled, **kwargs)
+  units, cfa_args_from, cfa_args_to = append_cfa_units(units, cfa_enabled, cfa_contexts, **kwargs)
 
   script_args = tuple(units)
 
