@@ -1046,7 +1046,7 @@ def bend(image, flows, batch_size):
     batch = [image]
     flow = flows[0]
     for i in range(1, len(flows)):
-         warp = vcn.warp_cv2(flow, image)
+         warp = warp_cv2(flow, image)
          if i % batch_size == 0:
              batch.append(warp)
          flow = flow + flows[i]
