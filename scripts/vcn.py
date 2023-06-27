@@ -146,12 +146,7 @@ def append_sag_units(units=[], sag_enabled=False, sag_scale=0.75, sag_mask_thres
     except:
       return units, 0, 0
 
-def append_cfa_units(units=[],
-					 cfa_enabled=False,
-					 cfa_contexts=None,
-                     cfa_output_attn_start=3,
-                     cfa_output_attn_end=12,
-					 **kwargs):
+def append_cfa_units(units=[], cfa_enabled=False, cfa_contexts=None, cfa_output_attn_start=3, cfa_output_attn_end=12, **kwargs):
     try:
         cfa_args_from = cfa_args_to = len(units)
 

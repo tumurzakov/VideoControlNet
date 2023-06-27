@@ -27,7 +27,7 @@ def default(val, d):
     return d() if isfunction(d) else d
 
 class CFAUnit:
-    def __init__(self, enabled=False, contexts = None, output_attn_start=3, output_attn_end=12):
+    def __init__(self, enabled=False, contexts = None, output_attn_start = 3, output_attn_end = 12):
         self.enabled = enabled
         self.contexts = contexts
         self.output_attn_start=output_attn_start
