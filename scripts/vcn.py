@@ -146,7 +146,12 @@ def append_sag_units(units=[], sag_enabled=False, sag_scale=0.75, sag_mask_thres
     except:
       return units, 0, 0
 
-def append_cfa_units(units=[], cfa_enabled=False, cfa_contexts=None, **kwargs):
+def append_cfa_units(units=[],
+					 cfa_enabled=False,
+					 cfa_contexts=None,
+                     cfa_output_attn_start=3,
+                     cfa_output_attn_end=12,
+					 **kwargs):
     try:
         cfa_args_from = cfa_args_to = len(units)
 
@@ -156,6 +161,8 @@ def append_cfa_units(units=[], cfa_enabled=False, cfa_contexts=None, **kwargs):
                 CFAUnit(
                     enabled=True,
                     contexts=cfa_contexts,
+                    cfa_output_attn_start=cfa_output_attn_start,
+                    cfa_output_attn_end=cfa_output_attn_end,
                 )
             )
             cfa_args_to = cfa_args_to + 1
@@ -594,8 +601,12 @@ def init():
 
 def infer(controlnets=[],
           sag_enabled=False,
+
           cfa_enabled=False,
           cfa_contexts=None,
+          cfa_output_attn_start=3,
+          cfa_output_attn_end=12,
+
           vcn_flows = [],
           vcn_key_frame = None,
           vcn_previous_frames = [],
@@ -656,7 +667,12 @@ def infer(controlnets=[],
   units = []
   units, cnet_args_from, cnet_args_to = append_cnet_units(units, controlnets, **kwargs)
   units, sag_args_from, sag_args_to = append_sag_units(units, sag_enabled, **kwargs)
-  units, cfa_args_from, cfa_args_to = append_cfa_units(units, cfa_enabled, cfa_contexts, **kwargs)
+  units, cfa_args_from, cfa_args_to = append_cfa_units(units,
+                                                       cfa_enabled,
+                                                       cfa_contexts,
+                                                       cfa_output_attn_start,
+                                                       cfa_output_attn_end,
+                                                       **kwargs)
 
   script_args = tuple(units)
 
