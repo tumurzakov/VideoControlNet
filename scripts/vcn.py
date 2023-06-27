@@ -151,8 +151,8 @@ def append_cfa_units(units=[],
 					 cfa_contexts=None,
 					 cfa_output_attn_start=3,
 					 cfa_output_attn_end=12,
-					 cfa_input_attn_start=3,
-					 cfa_input_attn_end=12,
+					 cfa_input_attn_start=1,
+					 cfa_input_attn_end=9,
 					 **kwargs):
     try:
         cfa_args_from = cfa_args_to = len(units)

@@ -27,7 +27,7 @@ def default(val, d):
     return d() if isfunction(d) else d
 
 class CFAUnit:
-    def __init__(self, enabled=False, contexts = None, output_attn_start = 3, output_attn_end = 12, input_attn_start = 3, input_attn_end = 12):
+    def __init__(self, enabled=False, contexts = None, output_attn_start = 3, output_attn_end = 12, input_attn_start = 1, input_attn_end = 9):
         self.enabled = enabled
         self.contexts = contexts
         self.output_attn_start=output_attn_start
@@ -159,9 +159,10 @@ class Script(scripts.Script):
             # replace target self attention module in unet with ours
 
             for i in range(cfa_unit.input_attn_start,cfa_unit.input_attn_end):
-                org_attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
-                saved_original_selfattn_forward['input_%d' % i] = org_attn_module.forward
-                org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+                if '1' in shared.sd_model.model.diffusion_model.input_blocks[i]._modules:
+                    org_attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
+                    saved_original_selfattn_forward['input_%d' % i] = org_attn_module.forward
+                    org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
 
             org_attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
             saved_original_selfattn_forward['middle'] = org_attn_module.forward
@@ -191,8 +192,9 @@ class Script(scripts.Script):
         if enabled:
             # restore original self attention module forward function
             for i in range(cfa_unit.input_attn_start,cfa_unit.input_attn_end):
-                attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
-                attn_module.forward = saved_original_selfattn_forward['input_%d' % i]
+                if '1' in shared.sd_model.model.diffusion_model.input_blocks[i]._modules:
+                    attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
+                    attn_module.forward = saved_original_selfattn_forward['input_%d' % i]
 
             attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
             attn_module.forward = saved_original_selfattn_forward['middle']
