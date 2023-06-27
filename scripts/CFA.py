@@ -132,7 +132,9 @@ class Script(scripts.Script):
             if "CFAUnit" in type(unit).__name__:
                 cfa_unit = unit
                 enabled = unit.enabled
-                cfa_previous_contexts = unit.contexts.to('cuda')
+                cfa_previous_contexts = unit.contexts
+                if cfa_previous_contexts != None:
+                    cfa_previous_contexts.to('cuda')
 
         if enabled:
             print("\n===>CFA enabled")
