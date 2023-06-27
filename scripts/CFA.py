@@ -27,9 +27,11 @@ def default(val, d):
     return d() if isfunction(d) else d
 
 class CFAUnit:
-    def __init__(self, enabled=False, contexts = None):
+    def __init__(self, enabled=False, contexts = None, output_attn_start=3, output_attn_end=12):
         self.enabled = enabled
         self.contexts = contexts
+        self.output_attn_start=output_attn_start
+        self.output_attn_end=output_attn_end
 
 def xattn_forward_log(self, x, context=None, mask=None):
     h = self.heads
@@ -125,8 +127,10 @@ class Script(scripts.Script):
 
         enabled, cfa_previous_contexts = [False, None]
 
+        cfa_unit = None
         for unit in p.script_args:
             if "CFAUnit" in type(unit).__name__:
+                cfa_unit = unit
                 enabled = unit.enabled
                 cfa_previous_contexts = unit.contexts
 
@@ -144,7 +148,7 @@ class Script(scripts.Script):
             saved_original_selfattn_forward['middle'] = org_attn_module.forward
             org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
 
-            for i in range(3,12):
+            for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 org_attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                 saved_original_selfattn_forward['output_%d' % i] = org_attn_module.forward
                 org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
@@ -159,8 +163,10 @@ class Script(scripts.Script):
         if len(args) == 1:
             enabled = args[0]
 
+        cfa_unit = None
         for unit in p.script_args:
             if "CFAUnit" in type(unit).__name__:
+                cfa_unit = unit
                 enabled = unit.enabled
 
         if enabled:
@@ -168,7 +174,7 @@ class Script(scripts.Script):
             attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
             attn_module.forward = saved_original_selfattn_forward['middle']
 
-            for i in range(3,12):
+            for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                 attn_module.forward = saved_original_selfattn_forward['output_%d' % i]
 
