@@ -156,8 +156,8 @@ def append_cfa_units(units=[], cfa_enabled=False, cfa_contexts=None, cfa_output_
                 CFAUnit(
                     enabled=True,
                     contexts=cfa_contexts,
-                    cfa_output_attn_start=cfa_output_attn_start,
-                    cfa_output_attn_end=cfa_output_attn_end,
+                    output_attn_start=cfa_output_attn_start,
+                    output_attn_end=cfa_output_attn_end,
                 )
             )
             cfa_args_to = cfa_args_to + 1
