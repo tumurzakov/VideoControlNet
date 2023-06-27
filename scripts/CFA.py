@@ -34,15 +34,15 @@ class CFAUnit:
 def xattn_forward_log(self, x, context=None, mask=None):
     h = self.heads
 
-    global cfa_previous_contexts, cfa_current_contexts, cfa_index
+    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_debug
     cfa_current_contexts.append(x)
 
     q = self.to_q(x)
-
-    if cfa_previous_contexts != None:
+    if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
         context = default(cfa_previous_contexts[cfa_index], x)
 
     context = default(context, x)
+
     k = self.to_k(context)
     v = self.to_v(context)
 
@@ -80,7 +80,7 @@ def xattn_forward_log(self, x, context=None, mask=None):
     cfa_index = cfa_index + 1
     return out
 
-saved_original_selfattn_forward = None
+saved_original_selfattn_forward = {}
 current_selfattn_map = None
 cfa_enabled = False
 
@@ -121,7 +121,7 @@ class Script(scripts.Script):
         except:
             pass
 
-        global cfa_enabled, cfa_previous_contexts
+        global cfa_enabled, cfa_previous_contexts, cfa_current_contexts, cfa_index
 
         enabled, cfa_previous_contexts = [False, None]
 
@@ -136,11 +136,16 @@ class Script(scripts.Script):
             p.cfa_enabled = True
             cfa_enabled = True
             cfa_index = 0
+            cfa_current_contexts = []
             global saved_original_selfattn_forward
             # replace target self attention module in unet with ours
 
             org_attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
-            saved_original_selfattn_forward = org_attn_module.forward
+            saved_original_selfattn_forward['middle'] = org_attn_module.forward
+            org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+
+            org_attn_module = shared.sd_model.model.diffusion_model.output_blocks[0]._modules['1'].transformer_blocks._modules['0'].attn1
+            saved_original_selfattn_forward['output_1'] = org_attn_module.forward
             org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
         else:
             cfa_enabled = False
@@ -159,10 +164,14 @@ class Script(scripts.Script):
 
         if enabled:
             # restore original self attention module forward function
-            attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules[
-                '0'].attn1
-            attn_module.forward = saved_original_selfattn_forward
+            attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
+            attn_module.forward = saved_original_selfattn_forward['middle']
+
+            attn_module = shared.sd_model.model.diffusion_model.output_blocks[0]._modules['1'].transformer_blocks._modules['0'].attn1
+            attn_module.forward = saved_original_selfattn_forward['output_1']
 
             global cfa_current_contexts
             processed.cfa_contexts = cfa_current_contexts
+            cfa_current_contexts = []
+            cfa_index = 0
         return
