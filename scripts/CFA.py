@@ -66,7 +66,8 @@ def xattn_forward_log(self, x, context=None, mask=None):
     if _ATTN_PRECISION == "fp32":
         with torch.autocast(enabled=False, device_type='cuda'):
             q, k = q.float(), k.float()
-            sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+            #sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+            sim = efficient_attention(q, k, self.scale)
     else:
         #sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
         sim = efficient_attention(q, k, self.scale)
