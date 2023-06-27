@@ -146,7 +146,14 @@ def append_sag_units(units=[], sag_enabled=False, sag_scale=0.75, sag_mask_thres
     except:
       return units, 0, 0
 
-def append_cfa_units(units=[], cfa_enabled=False, cfa_contexts=None, cfa_output_attn_start=3, cfa_output_attn_end=12, **kwargs):
+def append_cfa_units(units=[],
+					 cfa_enabled=False,
+					 cfa_contexts=None,
+					 cfa_output_attn_start=3,
+					 cfa_output_attn_end=12,
+					 cfa_input_attn_start=3,
+					 cfa_input_attn_end=12,
+					 **kwargs):
     try:
         cfa_args_from = cfa_args_to = len(units)
 
@@ -158,6 +165,8 @@ def append_cfa_units(units=[], cfa_enabled=False, cfa_contexts=None, cfa_output_
                     contexts=cfa_contexts,
                     output_attn_start=cfa_output_attn_start,
                     output_attn_end=cfa_output_attn_end,
+                    input_attn_start=cfa_input_attn_start,
+                    input_attn_end=cfa_input_attn_end,
                 )
             )
             cfa_args_to = cfa_args_to + 1
@@ -601,6 +610,8 @@ def infer(controlnets=[],
           cfa_contexts=None,
           cfa_output_attn_start=3,
           cfa_output_attn_end=12,
+          cfa_input_attn_start=3,
+          cfa_input_attn_end=12,
 
           vcn_flows = [],
           vcn_key_frame = None,
@@ -662,7 +673,14 @@ def infer(controlnets=[],
   units = []
   units, cnet_args_from, cnet_args_to = append_cnet_units(units, controlnets, **kwargs)
   units, sag_args_from, sag_args_to = append_sag_units(units, sag_enabled, **kwargs)
-  units, cfa_args_from, cfa_args_to = append_cfa_units(units, cfa_enabled, cfa_contexts, cfa_output_attn_start, cfa_output_attn_end, **kwargs)
+  units, cfa_args_from, cfa_args_to = append_cfa_units(units,
+													   cfa_enabled,
+													   cfa_contexts,
+													   cfa_output_attn_start,
+													   cfa_output_attn_end,
+													   cfa_input_attn_start,
+													   cfa_input_attn_end,
+													   **kwargs)
 
   script_args = tuple(units)
 
