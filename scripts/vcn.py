@@ -312,11 +312,11 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
       return samples
 
-  def flow_warping ( self, frame , flow ):
-    if self.vcn_warp_func == 'kornia':
-  	  return warp_kornia_torch(flow, frame)
+  def flow_warping (self, frame , flow):
+      if self.vcn_warp_func == 'kornia':
+  	      return warp_kornia_torch(flow, frame)
 
-  	return warp_vcn_torch(flow, frame)
+  	  return warp_vcn_torch(flow, frame)
 
   def calc_error(self,
                  x_sample,
