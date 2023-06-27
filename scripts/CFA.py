@@ -33,6 +33,18 @@ class CFAUnit:
         self.output_attn_start=output_attn_start
         self.output_attn_end=output_attn_end
 
+def efficient_attention(q, k, scale):
+    batch_size, seq_len, embedding_dim = q.size()
+
+    # Transpose k and perform matrix multiplication
+    k_t = k.transpose(1, 2)
+    attn_scores = torch.bmm(q, k_t)
+
+    # Scale the attention scores
+    attn_scores = attn_scores * scale
+
+    return attn_scores
+
 def xattn_forward_log(self, x, context=None, mask=None):
     h = self.heads
 
@@ -56,7 +68,8 @@ def xattn_forward_log(self, x, context=None, mask=None):
             q, k = q.float(), k.float()
             sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
     else:
-        sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+        #sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+        sim = efficient_attention(q, k, self.scale)
 
     del q, k
 
