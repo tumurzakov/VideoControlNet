@@ -204,7 +204,8 @@ class Script(scripts.Script):
                 attn_module.forward = saved_original_selfattn_forward['output_%d' % i]
 
             global cfa_current_contexts
-            processed.cfa_contexts = cfa_current_contexts
+            if len(cfa_current_contexts) > 0:
+                processed.cfa_contexts = cfa_current_contexts
             cfa_current_contexts = []
             cfa_index = 0
         return
