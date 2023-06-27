@@ -146,6 +146,24 @@ def append_sag_units(units=[], sag_enabled=False, sag_scale=0.75, sag_mask_thres
     except:
       return units, 0, 0
 
+def append_cfa_units(units=[], cfa_enabled=False, cfa_contexts=[], **kwargs):
+    try:
+        cfa_args_from = cfa_args_to = len(units)
+
+        if cfa_enabled:
+            from extensions.VideoControlNet.scripts.CFA import CFAUnit
+            units.append(
+                CFAUnit(
+                    enabled=True,
+                    contexts=cfa_contexts,
+                )
+            )
+            cfa_args_to = cfa_args_to + 1
+
+        return units, cfa_args_from, cfa_args_to
+    except:
+      return units, 0, 0
+
 def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
   if predict_cids:
       if z.dim() == 4:
@@ -576,6 +594,7 @@ def init():
 
 def infer(controlnets=[],
           sag_enabled=False,
+          cfa_enabled=False,
           vcn_flows = [],
           vcn_key_frame = None,
           vcn_previous_frames = [],
@@ -636,6 +655,7 @@ def infer(controlnets=[],
   units = []
   units, cnet_args_from, cnet_args_to = append_cnet_units(units, controlnets, **kwargs)
   units, sag_args_from, sag_args_to = append_sag_units(units, sag_enabled, **kwargs)
+  units, cfa_args_from, cfa_args_to = append_cfa_units(units, cfa_enabled, **kwargs)
 
   script_args = tuple(units)
 
@@ -651,6 +671,11 @@ def infer(controlnets=[],
     if script.title() == 'ControlNet':
       p.scripts.scripts[index].args_from = cnet_args_from
       p.scripts.scripts[index].args_to = cnet_args_to
+      enabled_scripts.append(p.scripts.scripts[index])
+
+    elif cfa_enabled and script.title() == 'Cross Frame Attention':
+      p.scripts.scripts[index].args_from = cfa_args_from
+      p.scripts.scripts[index].args_to = cfa_args_to
       enabled_scripts.append(p.scripts.scripts[index])
 
     elif sag_enabled and script.title() == 'Self Attention Guidance':
