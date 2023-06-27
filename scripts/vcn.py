@@ -1050,4 +1050,4 @@ def bend(image, flows, batch_size):
          if i % batch_size == 0:
              batch.append(warp)
          flow = flow + flows[i]
-    return vcn.engrid(batch)
+    return engrid(batch)
