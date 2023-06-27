@@ -144,9 +144,10 @@ class Script(scripts.Script):
             saved_original_selfattn_forward['middle'] = org_attn_module.forward
             org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
 
-            org_attn_module = shared.sd_model.model.diffusion_model.output_blocks[0]._modules['1'].transformer_blocks._modules['0'].attn1
-            saved_original_selfattn_forward['output_1'] = org_attn_module.forward
-            org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+            for i in range(3,12):
+                org_attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
+                saved_original_selfattn_forward['output_%d' % i] = org_attn_module.forward
+                org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
         else:
             cfa_enabled = False
 
@@ -167,8 +168,9 @@ class Script(scripts.Script):
             attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
             attn_module.forward = saved_original_selfattn_forward['middle']
 
-            attn_module = shared.sd_model.model.diffusion_model.output_blocks[0]._modules['1'].transformer_blocks._modules['0'].attn1
-            attn_module.forward = saved_original_selfattn_forward['output_1']
+            for i in range(3,12):
+                attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
+                attn_module.forward = saved_original_selfattn_forward['output_%d' % i]
 
             global cfa_current_contexts
             processed.cfa_contexts = cfa_current_contexts
