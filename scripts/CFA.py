@@ -37,7 +37,7 @@ def xattn_forward_log(self, x, context=None, mask=None):
     h = self.heads
 
     global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_debug
-    cfa_current_contexts.append(x)
+    cfa_current_contexts.append(x.detach().cpu())
 
     q = self.to_q(x)
     if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
@@ -181,7 +181,7 @@ class Script(scripts.Script):
                 attn_module.forward = saved_original_selfattn_forward['output_%d' % i]
 
             global cfa_current_contexts
-            processed.cfa_contexts = cfa_current_contexts.detach().cpu()
+            processed.cfa_contexts = cfa_current_contexts
             cfa_current_contexts = []
             cfa_index = 0
         return
