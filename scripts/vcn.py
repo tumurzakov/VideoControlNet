@@ -314,9 +314,9 @@ class StableDiffusionProcessingImg2ImgVCN(StableDiffusionProcessingImg2Img):
 
   def flow_warping (self, frame , flow):
       if self.vcn_warp_func == 'kornia':
-  	      return warp_kornia_torch(flow, frame)
+          return warp_kornia_torch(flow, frame)
 
-  	  return warp_vcn_torch(flow, frame)
+      return warp_vcn_torch(flow, frame)
 
   def calc_error(self,
                  x_sample,
@@ -730,8 +730,8 @@ def degrid(grid, power):
     images = []
     for y in range(power):
         for x in range(power):
-			img = grid.crop((x*dimx, y*dimy, (x+1)*dimx, (y+1)*dimy))
-			images.append(img)
+            img = grid.crop((x*dimx, y*dimy, (x+1)*dimx, (y+1)*dimy))
+            images.append(img)
 
     return images
 
@@ -742,23 +742,23 @@ def get_flow_field(flow,
                    ):
 
 
-  show = image.copy()
-  img = ImageDraw.Draw(show)
+    show = image.copy()
+    img = ImageDraw.Draw(show)
 
-  # Iterate over each pixel in the flow array
-  for y in range(0, flow.shape[0], 10):
-      for x in range(0, flow.shape[1], 10):
-          # Calculate the flow vector at the current pixel
-          flow_x = flow[y, x, 0]  # Flow in x-direction
-          flow_y = flow[y, x, 1]  # Flow in y-direction
+    # Iterate over each pixel in the flow array
+    for y in range(0, flow.shape[0], 10):
+        for x in range(0, flow.shape[1], 10):
+            # Calculate the flow vector at the current pixel
+            flow_x = flow[y, x, 0]  # Flow in x-direction
+            flow_y = flow[y, x, 1]  # Flow in y-direction
 
-          # Calculate the arrow endpoints
-          arrow_start = (x, y)
-          arrow_end = (x + flow_x * arrow_scale, y + flow_y * arrow_scale)
+            # Calculate the arrow endpoints
+            arrow_start = (x, y)
+            arrow_end = (x + flow_x * arrow_scale, y + flow_y * arrow_scale)
 
-          # Draw the arrow on the image
-          img.line([arrow_start, arrow_end], fill='green', width=0)
-  return show
+            # Draw the arrow on the image
+            img.line([arrow_start, arrow_end], fill='green', width=0)
+    return show
 
 
 def plot_losses(losses):
