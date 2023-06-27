@@ -667,12 +667,7 @@ def infer(controlnets=[],
   units = []
   units, cnet_args_from, cnet_args_to = append_cnet_units(units, controlnets, **kwargs)
   units, sag_args_from, sag_args_to = append_sag_units(units, sag_enabled, **kwargs)
-  units, cfa_args_from, cfa_args_to = append_cfa_units(units,
-                                                       cfa_enabled,
-                                                       cfa_contexts,
-                                                       cfa_output_attn_start,
-                                                       cfa_output_attn_end,
-                                                       **kwargs)
+  units, cfa_args_from, cfa_args_to = append_cfa_units(units, cfa_enabled, cfa_contexts, cfa_output_attn_start, cfa_output_attn_end, **kwargs)
 
   script_args = tuple(units)
 
