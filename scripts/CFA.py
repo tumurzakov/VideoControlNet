@@ -37,7 +37,7 @@ def xattn_forward_log(self, x, context=None, mask=None):
     h = self.heads
 
     global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_debug
-    cfa_current_contexts.append(x.detach().cpu())
+    cfa_current_contexts.append(x)
 
     q = self.to_q(x)
     if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
@@ -133,8 +133,6 @@ class Script(scripts.Script):
                 cfa_unit = unit
                 enabled = unit.enabled
                 cfa_previous_contexts = unit.contexts
-                if cfa_previous_contexts != None:
-                    cfa_previous_contexts.to('cuda')
 
         if enabled:
             print("\n===>CFA enabled")
