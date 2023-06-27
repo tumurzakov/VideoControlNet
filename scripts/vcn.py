@@ -120,6 +120,7 @@ def append_cnet_units(units=[], controlnets=[], **kwargs):
           model=cnet_models[cnet_module],
           weight=cnet_weight,
           image=np.array(cnet_image),
+          processor_res=512,
         )
       )
       cnet_args_to = cnet_args_to + 1
