@@ -132,7 +132,7 @@ class Script(scripts.Script):
             if "CFAUnit" in type(unit).__name__:
                 cfa_unit = unit
                 enabled = unit.enabled
-                cfa_previous_contexts = unit.contexts
+                cfa_previous_contexts = unit.contexts.to('cuda')
 
         if enabled:
             print("\n===>CFA enabled")
@@ -179,7 +179,7 @@ class Script(scripts.Script):
                 attn_module.forward = saved_original_selfattn_forward['output_%d' % i]
 
             global cfa_current_contexts
-            processed.cfa_contexts = cfa_current_contexts
+            processed.cfa_contexts = cfa_current_contexts.detach().cpu()
             cfa_current_contexts = []
             cfa_index = 0
         return
