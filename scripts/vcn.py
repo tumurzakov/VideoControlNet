@@ -716,6 +716,12 @@ def infer(
 
   print("\n====>vram p init", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
 
+  if 'batch_size' in kwargs and kwargs['batch_size'] > 1 and seeds == None:
+      seeds = [
+          int(random.randrange(4294967294))
+          for rnd in range(kwargs['batch_size'])
+      ]
+
   if seeds != None:
       p.seeds = seeds
 
