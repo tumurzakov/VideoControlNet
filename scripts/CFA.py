@@ -79,37 +79,42 @@ def xattn_forward_log(self, x, context=None, mask=None):
     kc = self.to_k(x)
     vc = self.to_v(x)
 
-    q, kp, vp = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, kp, vp))
-    q, kc, vc = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, kc, vc))
+    q, kp, vp = map(lambda t: rearrange(t, 'bp np (hp dp) -> (bp hp) np dp', h=h), (q, kp, vp))
+    q, kc, vc = map(lambda t: rearrange(t, 'bc nc (hc dc) -> (bc hc) nc dc', h=h), (q, kc, vc))
 
     # force cast to fp32 to avoid overflowing
     if _ATTN_PRECISION == "fp32":
         with torch.autocast(enabled=False, device_type='cuda'):
             q, kp, kc = q.float(), kp.float(), kc.float()
-            simp = einsum('b i d, b j d -> b i j', q, kp) * self.scale
-            simc = einsum('b i d, b j d -> b i j', q, kc) * self.scale
+            simp = einsum('bp ip dp, bp jp dp -> bp ip jp', q, kp) * self.scale
+            simc = einsum('bc ic dc, bc jc dc -> bc ic jc', q, kc) * self.scale
     else:
-        simp = einsum('b i d, b j d -> b i j', q, kp) * self.scale
-        simc = einsum('b i d, b j d -> b i j', q, kc) * self.scale
+        simp = einsum('bp ip dp, bp jp dp -> bp ip jp', q, kp) * self.scale
+        simc = einsum('bc ic dc, bc jc dc -> bc ic jc', q, kc) * self.scale
 
     del q, kp, kc
 
     if exists(mask):
-        mask = rearrange(mask, 'b ... -> b (...)')
-        mask = repeat(mask, 'b j -> (b h) () j', h=h)
+        mask = rearrange(mask, 'bp ... -> bp (...)')
+        mask = repeat(mask, 'bp jp -> (bp hp) () jp', h=h)
+
+        max_neg_value_p = -torch.finfo(simp.dtype).max
+        simp.masked_fill_(~mask, max_neg_value_p)
+
+        mask = rearrange(mask, 'bc ... -> bc (...)')
+        mask = repeat(mask, 'bc jc -> (bc hc) () jc', h=h)
 
         max_neg_value_c = -torch.finfo(simc.dtype).max
         simc.masked_fill_(~mask, max_neg_value_c)
 
-        max_neg_value_p = -torch.finfo(simp.dtype).max
-        simp.masked_fill_(~mask, max_neg_value_p)
+
 
     # attention, what we cannot get enough of
     simp = simp.softmax(dim=-1)
     simc = simc.softmax(dim=-1)
 
-    outp = einsum('b i j, b j d -> b i d', simp, vp)
-    outc = einsum('b i j, b j d -> b i d', simc, vc)
+    outp = einsum('bp ip jp, bp jp dp -> bp ip dp', simp, vp)
+    outc = einsum('bc ic jc, bc jc dc -> bc ic dc', simc, vc)
 
     out = cfa_previous_scale * outp + cfa_current_scale * outc
 
