@@ -73,51 +73,31 @@ def xattn_forward_log(self, x, context=None, mask=None):
 
     context = default(context, x)
 
-    kp = self.to_k(context)
-    vp = self.to_v(context)
+    k = self.to_k(context)
+    v = self.to_v(context)
 
-    kc = self.to_k(x)
-    vc = self.to_v(x)
-
-    q, kp, vp = map(lambda t: rearrange(t, 'bp np (hp dp) -> (bp hp) np dp', hp=h), (q, kp, vp))
-    q, kc, vc = map(lambda t: rearrange(t, 'bc nc (hc dc) -> (bc hc) nc dc', hc=h), (q, kc, vc))
+    q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
 
     # force cast to fp32 to avoid overflowing
     if _ATTN_PRECISION == "fp32":
         with torch.autocast(enabled=False, device_type='cuda'):
-            q, kp, kc = q.float(), kp.float(), kc.float()
-            simp = einsum('bp ip dp, bp jp dp -> bp ip jp', q, kp) * self.scale
-            simc = einsum('bc ic dc, bc jc dc -> bc ic jc', q, kc) * self.scale
+            q, k = q.float(), k.float()
+            sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
     else:
-        simp = einsum('bp ip dp, bp jp dp -> bp ip jp', q, kp) * self.scale
-        simc = einsum('bc ic dc, bc jc dc -> bc ic jc', q, kc) * self.scale
+        sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
 
-    del q, kp, kc
+    del q, k
 
     if exists(mask):
-        mask = rearrange(mask, 'bp ... -> bp (...)')
-        mask = repeat(mask, 'bp jp -> (bp hp) () jp', hp=h)
-
-        max_neg_value_p = -torch.finfo(simp.dtype).max
-        simp.masked_fill_(~mask, max_neg_value_p)
-
-        mask = rearrange(mask, 'bc ... -> bc (...)')
-        mask = repeat(mask, 'bc jc -> (bc hc) () jc', hc=h)
-
-        max_neg_value_c = -torch.finfo(simc.dtype).max
-        simc.masked_fill_(~mask, max_neg_value_c)
-
-
+        mask = rearrange(mask, 'b ... -> b (...)')
+        max_neg_value = -torch.finfo(sim.dtype).max
+        mask = repeat(mask, 'b j -> (b h) () j', h=h)
+        sim.masked_fill_(~mask, max_neg_value)
 
     # attention, what we cannot get enough of
-    simp = simp.softmax(dim=-1)
-    simc = simc.softmax(dim=-1)
+    sim = sim.softmax(dim=-1)
 
-    outp = einsum('bp ip jp, bp jp dp -> bp ip dp', simp, vp)
-    outc = einsum('bc ic jc, bc jc dc -> bc ic dc', simc, vc)
-
-    out = cfa_previous_scale * outp + cfa_current_scale * outc
-
+    out = einsum('b i j, b j d -> b i d', sim, v)
     out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
     out = self.to_out(out)
 
@@ -125,6 +105,7 @@ def xattn_forward_log(self, x, context=None, mask=None):
     return out
 
 saved_original_selfattn_forward = {}
+current_selfattn_map = None
 cfa_enabled = False
 
 cfa_previous_contexts = None
@@ -132,6 +113,14 @@ cfa_current_contexts = []
 cfa_index = 0
 cfa_previous_scale = 1
 cfa_current_scale = 0
+
+current_xin = None
+current_outsize = (64,64)
+current_batch_size = 1
+current_degraded_pred= None
+current_unet_kwargs = {}
+current_uncond_pred = None
+current_degraded_pred_compensation = None
 
 class Script(scripts.Script):
 
