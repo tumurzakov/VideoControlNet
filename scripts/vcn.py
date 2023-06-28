@@ -603,7 +603,10 @@ def init():
   #for i in range(len(shared.sd_upscalers)):
   #    print("\n===>", i, shared.sd_upscalers[i].name)
 
-def infer(controlnets=[],
+def infer(
+          seeds = None,
+
+          controlnets=[],
           sag_enabled=False,
 
           cfa_enabled=False,
@@ -712,6 +715,9 @@ def infer(controlnets=[],
   p.scripts.alwayson_scripts = enabled_scripts
 
   print("\n====>vram p init", torch.cuda.memory_allocated('cuda') / 1024**3) if vram_debug else None
+
+  if seeds != None:
+      p.seeds = seeds
 
   if upscaler_image == None:
       shared.state.begin()
