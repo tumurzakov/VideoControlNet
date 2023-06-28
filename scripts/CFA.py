@@ -85,7 +85,7 @@ def xattn_forward_log(self, x, context=None, mask=None):
     # force cast to fp32 to avoid overflowing
     if _ATTN_PRECISION == "fp32":
         with torch.autocast(enabled=False, device_type='cuda'):
-            q, kp, kc = q.float(), kp.float(), kc.floa()
+            q, kp, kc = q.float(), kp.float(), kc.float()
             simp = einsum('b i d, b j d -> b i j', q, kp) * self.scale
             simc = einsum('b i d, b j d -> b i j', q, kc) * self.scale
     else:
