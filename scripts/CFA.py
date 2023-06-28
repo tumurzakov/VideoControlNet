@@ -79,8 +79,8 @@ def xattn_forward_log(self, x, context=None, mask=None):
     kc = self.to_k(x)
     vc = self.to_v(x)
 
-    q, kp, vp = map(lambda t: rearrange(t, 'bp np (hp dp) -> (bp hp) np dp', h=h), (q, kp, vp))
-    q, kc, vc = map(lambda t: rearrange(t, 'bc nc (hc dc) -> (bc hc) nc dc', h=h), (q, kc, vc))
+    q, kp, vp = map(lambda t: rearrange(t, 'bp np (hp dp) -> (bp hp) np dp', hp=h), (q, kp, vp))
+    q, kc, vc = map(lambda t: rearrange(t, 'bc nc (hc dc) -> (bc hc) nc dc', hc=h), (q, kc, vc))
 
     # force cast to fp32 to avoid overflowing
     if _ATTN_PRECISION == "fp32":
@@ -96,13 +96,13 @@ def xattn_forward_log(self, x, context=None, mask=None):
 
     if exists(mask):
         mask = rearrange(mask, 'bp ... -> bp (...)')
-        mask = repeat(mask, 'bp jp -> (bp hp) () jp', h=h)
+        mask = repeat(mask, 'bp jp -> (bp hp) () jp', hp=h)
 
         max_neg_value_p = -torch.finfo(simp.dtype).max
         simp.masked_fill_(~mask, max_neg_value_p)
 
         mask = rearrange(mask, 'bc ... -> bc (...)')
-        mask = repeat(mask, 'bc jc -> (bc hc) () jc', h=h)
+        mask = repeat(mask, 'bc jc -> (bc hc) () jc', hc=h)
 
         max_neg_value_c = -torch.finfo(simc.dtype).max
         simc.masked_fill_(~mask, max_neg_value_c)
