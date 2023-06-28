@@ -160,16 +160,19 @@ class Script(scripts.Script):
 
             for i in range(cfa_unit.input_attn_start,cfa_unit.input_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.input_blocks[i]._modules:
+                    print("\n===>CFA replace input", i)
                     org_attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['input_%d' % i] = org_attn_module.forward
                     org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
 
+            print("\n===>CFA replace middle")
             org_attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
             saved_original_selfattn_forward['middle'] = org_attn_module.forward
             org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
 
             for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.output_blocks[i]._modules:
+                    print("\n===>CFA replace output", i)
                     org_attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['output_%d' % i] = org_attn_module.forward
                     org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
@@ -194,14 +197,17 @@ class Script(scripts.Script):
             # restore original self attention module forward function
             for i in range(cfa_unit.input_attn_start,cfa_unit.input_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.input_blocks[i]._modules:
+                    print("\n===>CFA restore input", i)
                     attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     attn_module.forward = saved_original_selfattn_forward['input_%d' % i]
 
+            print("\n===>CFA restore middle")
             attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
             attn_module.forward = saved_original_selfattn_forward['middle']
 
             for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.output_blocks[i]._modules:
+                    print("\n===>CFA restore output", i)
                     attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     attn_module.forward = saved_original_selfattn_forward['output_%d' % i]
 
