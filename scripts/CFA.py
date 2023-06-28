@@ -27,13 +27,22 @@ def default(val, d):
     return d() if isfunction(d) else d
 
 class CFAUnit:
-    def __init__(self, enabled=False, contexts = None, output_attn_start = 3, output_attn_end = 12, input_attn_start = 1, input_attn_end = 9):
+    def __init__(self,
+                 enabled=False,
+                 contexts = None,
+                 output_attn_start = 3,
+                 output_attn_end = 12,
+                 input_attn_start = 1,
+                 input_attn_end = 9,
+                 middle_attn=True):
+
         self.enabled = enabled
         self.contexts = contexts
         self.output_attn_start=output_attn_start
         self.output_attn_end=output_attn_end
         self.input_attn_start=input_attn_start
         self.input_attn_end=input_attn_end
+        self.middle_attn=middle_attn
 
 def efficient_attention(q, k, scale):
     batch_size, seq_len, embedding_dim = q.size()
@@ -165,10 +174,11 @@ class Script(scripts.Script):
                     saved_original_selfattn_forward['input_%d' % i] = org_attn_module.forward
                     org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
 
-            print("\n===>CFA replace middle")
-            org_attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
-            saved_original_selfattn_forward['middle'] = org_attn_module.forward
-            org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+            if cfa_unit.middle_attn:
+                print("\n===>CFA replace middle")
+                org_attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
+                saved_original_selfattn_forward['middle'] = org_attn_module.forward
+                org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
 
             for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.output_blocks[i]._modules:
@@ -201,9 +211,10 @@ class Script(scripts.Script):
                     attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     attn_module.forward = saved_original_selfattn_forward['input_%d' % i]
 
-            print("\n===>CFA restore middle")
-            attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
-            attn_module.forward = saved_original_selfattn_forward['middle']
+            if cfa_unit.middle_attn:
+                print("\n===>CFA restore middle")
+                attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
+                attn_module.forward = saved_original_selfattn_forward['middle']
 
             for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.output_blocks[i]._modules:
