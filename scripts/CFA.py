@@ -34,7 +34,10 @@ class CFAUnit:
                  output_attn_end = 12,
                  input_attn_start = 1,
                  input_attn_end = 9,
-                 middle_attn=True):
+                 middle_attn=True,
+                 previous_scale = 1,
+                 current_scale = 0,
+                 ):
 
         self.enabled = enabled
         self.contexts = contexts
@@ -43,6 +46,8 @@ class CFAUnit:
         self.input_attn_start=input_attn_start
         self.input_attn_end=input_attn_end
         self.middle_attn=middle_attn
+        self.previous_scale=previous_scale
+        self.current_scale=current_scale
 
 def efficient_attention(q, k, scale):
     batch_size, seq_len, embedding_dim = q.size()
@@ -59,7 +64,7 @@ def efficient_attention(q, k, scale):
 def xattn_forward_log(self, x, context=None, mask=None):
     h = self.heads
 
-    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_debug
+    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_scale, cfa_current_scale
     cfa_current_contexts.append(x)
 
     q = self.to_q(x)
@@ -68,58 +73,60 @@ def xattn_forward_log(self, x, context=None, mask=None):
 
     context = default(context, x)
 
-    k = self.to_k(context)
-    v = self.to_v(context)
+    kp = self.to_k(context)
+    vp = self.to_v(context)
 
-    q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
+    kc = self.to_k(x)
+    vc = self.to_v(x)
+
+    q, kp, vp = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, kp, vp))
+    q, kc, vc = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, kc, vc))
 
     # force cast to fp32 to avoid overflowing
     if _ATTN_PRECISION == "fp32":
         with torch.autocast(enabled=False, device_type='cuda'):
-            q, k = q.float(), k.float()
-            sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+            q, kp, kc = q.float(), kp.float(), kc.floa()
+            simp = einsum('b i d, b j d -> b i j', q, kp) * self.scale
+            simc = einsum('b i d, b j d -> b i j', q, kc) * self.scale
     else:
-        sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+        simp = einsum('b i d, b j d -> b i j', q, kp) * self.scale
+        simc = einsum('b i d, b j d -> b i j', q, kc) * self.scale
 
-    del q, k
+    del q, kp, kc
 
     if exists(mask):
         mask = rearrange(mask, 'b ... -> b (...)')
-        max_neg_value = -torch.finfo(sim.dtype).max
         mask = repeat(mask, 'b j -> (b h) () j', h=h)
-        sim.masked_fill_(~mask, max_neg_value)
+
+        max_neg_value_c = -torch.finfo(simc.dtype).max
+        simc.masked_fill_(~mask, max_neg_value_c)
+
+        max_neg_value_p = -torch.finfo(simp.dtype).max
+        simp.masked_fill_(~mask, max_neg_value_p)
 
     # attention, what we cannot get enough of
-    sim = sim.softmax(dim=-1)
+    simp = simp.softmax(dim=-1)
+    simc = simc.softmax(dim=-1)
 
-    self.attn_probs = sim
-    global current_selfattn_map
-    current_selfattn_map = sim
+    outp = einsum('b i j, b j d -> b i d', simp, vp)
+    outc = einsum('b i j, b j d -> b i d', simc, vc)
 
-    out = einsum('b i j, b j d -> b i d', sim, v)
+    out = cfa_previous_scale * outp + cfa_current_scale * outc
+
     out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
     out = self.to_out(out)
-    global current_outsize
-    current_outsize = out.shape[-2:]
 
     cfa_index = cfa_index + 1
     return out
 
 saved_original_selfattn_forward = {}
-current_selfattn_map = None
 cfa_enabled = False
 
 cfa_previous_contexts = None
 cfa_current_contexts = []
 cfa_index = 0
-
-current_xin = None
-current_outsize = (64,64)
-current_batch_size = 1
-current_degraded_pred= None
-current_unet_kwargs = {}
-current_uncond_pred = None
-current_degraded_pred_compensation = None
+cfa_previous_scale = 1
+cfa_current_scale = 0
 
 class Script(scripts.Script):
 
@@ -146,7 +153,7 @@ class Script(scripts.Script):
         except:
             pass
 
-        global cfa_enabled, cfa_previous_contexts, cfa_current_contexts, cfa_index
+        global cfa_enabled, cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_scale, cfa_current_scale
 
         enabled, cfa_previous_contexts = [False, None]
 
@@ -156,6 +163,8 @@ class Script(scripts.Script):
                 cfa_unit = unit
                 enabled = unit.enabled
                 cfa_previous_contexts = unit.contexts
+                cfa_previous_scale = unit.previous_scale
+                cfa_current_scale = unit.current_scale
 
         if enabled:
             print("\n===>CFA enabled")
