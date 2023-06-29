@@ -35,8 +35,8 @@ class CFAUnit:
                  input_attn_start = 1,
                  input_attn_end = 9,
                  middle_attn=True,
-                 previous_scale = 1,
-                 current_scale = 0,
+                 previous_weight = 1,
+                 current_weight = 0,
                  ):
 
         self.enabled = enabled
@@ -46,8 +46,8 @@ class CFAUnit:
         self.input_attn_start=input_attn_start
         self.input_attn_end=input_attn_end
         self.middle_attn=middle_attn
-        self.previous_scale=previous_scale
-        self.current_scale=current_scale
+        self.previous_weight=previous_weight
+        self.current_weight=current_weight
 
 def efficient_attention(q, k, scale):
     batch_size, seq_len, embedding_dim = q.size()
@@ -61,15 +61,10 @@ def efficient_attention(q, k, scale):
 
     return attn_scores
 
-def xattn_forward_log(self, x, context=None, mask=None):
+def cfa_calc_attn(self, x, context=None, mask=None):
     h = self.heads
 
-    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_scale, cfa_current_scale
-    cfa_current_contexts.append(x)
-
     q = self.to_q(x)
-    if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
-        context = default(cfa_previous_contexts[cfa_index], x)
 
     context = default(context, x)
 
@@ -101,6 +96,30 @@ def xattn_forward_log(self, x, context=None, mask=None):
     out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
     out = self.to_out(out)
 
+    return out
+
+def xattn_forward_log(self, x, context=None, mask=None):
+
+    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
+    cfa_current_contexts.append(x)
+
+    current_weight = cfa_current_weight
+    previous_weight = cfa_previous_weight
+
+    outp = None
+    if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
+        prevous_context = default(cfa_previous_contexts[cfa_index], x)
+        outp = self.cfa_calc_attn(x, previous_context, mask)
+        current_weight = 1
+        previous_weight = 0
+
+    outc = self.calc_attn(x, context, mask)
+
+    out = outc * current_weight
+
+    if outp != None:
+        out = out + outp * previous_weight
+
     cfa_index = cfa_index + 1
     return out
 
@@ -111,8 +130,8 @@ cfa_enabled = False
 cfa_previous_contexts = None
 cfa_current_contexts = []
 cfa_index = 0
-cfa_previous_scale = 1
-cfa_current_scale = 0
+cfa_previous_weight = 1
+cfa_current_weight = 0
 
 current_xin = None
 current_outsize = (64,64)
@@ -147,7 +166,7 @@ class Script(scripts.Script):
         except:
             pass
 
-        global cfa_enabled, cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_scale, cfa_current_scale
+        global cfa_enabled, cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
 
         enabled, cfa_previous_contexts = [False, None]
 
@@ -157,8 +176,8 @@ class Script(scripts.Script):
                 cfa_unit = unit
                 enabled = unit.enabled
                 cfa_previous_contexts = unit.contexts
-                cfa_previous_scale = unit.previous_scale
-                cfa_current_scale = unit.current_scale
+                cfa_previous_weight = unit.previous_weight
+                cfa_current_weight = unit.current_weight
 
         if enabled:
             print("\n===>CFA enabled")
@@ -176,12 +195,14 @@ class Script(scripts.Script):
                     org_attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['input_%d' % i] = org_attn_module.forward
                     org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+                    org_attn_module.cfa_calc_attn = cfa_calc_attn.__get__(org_attn_module,org_attn_module.__class__)
 
             if cfa_unit.middle_attn:
                 print("\n===>CFA replace middle")
                 org_attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
                 saved_original_selfattn_forward['middle'] = org_attn_module.forward
                 org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+                org_attn_module.cfa_calc_attn = cfa_calc_attn.__get__(org_attn_module,org_attn_module.__class__)
 
             for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.output_blocks[i]._modules:
@@ -189,6 +210,7 @@ class Script(scripts.Script):
                     org_attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['output_%d' % i] = org_attn_module.forward
                     org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+                    org_attn_module.cfa_calc_attn = cfa_calc_attn.__get__(org_attn_module,org_attn_module.__class__)
         else:
             cfa_enabled = False
 

@@ -155,8 +155,8 @@ def append_cfa_units(units=[],
 					 cfa_input_attn_start=1,
 					 cfa_input_attn_end=9,
                      cfa_middle_attn=True,
-					 cfa_previous_scale=1,
-					 cfa_current_scale=0,
+					 cfa_previous_weight=1,
+					 cfa_current_weight=0,
 					 **kwargs):
     try:
         cfa_args_from = cfa_args_to = len(units)
@@ -172,8 +172,8 @@ def append_cfa_units(units=[],
                     input_attn_start=cfa_input_attn_start,
                     input_attn_end=cfa_input_attn_end,
                     middle_attn=cfa_middle_attn,
-                    previous_scale=cfa_previous_scale,
-                    current_scale=cfa_current_scale,
+                    previous_weight=cfa_previous_weight,
+                    current_weight=cfa_current_weight,
                 )
             )
             cfa_args_to = cfa_args_to + 1
@@ -623,8 +623,8 @@ def infer(
           cfa_input_attn_start=3,
           cfa_input_attn_end=12,
           cfa_middle_attn=True,
-          cfa_previous_scale=1,
-          cfa_current_scale=0,
+          cfa_previous_weight=1,
+          cfa_current_weight=0,
 
           vcn_flows = [],
           vcn_key_frame = None,
@@ -694,8 +694,8 @@ def infer(
 													   cfa_input_attn_start,
 													   cfa_input_attn_end,
                                                        cfa_middle_attn,
-                                                       cfa_previous_scale,
-                                                       cfa_current_scale,
+                                                       cfa_previous_weight,
+                                                       cfa_current_weight,
 													   **kwargs)
 
   script_args = tuple(units)
