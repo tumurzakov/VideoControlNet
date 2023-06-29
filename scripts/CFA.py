@@ -96,18 +96,15 @@ def xattn_forward_log(self, x, context=None, mask=None):
 
     outp = None
     if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
-        prevous_context = default(cfa_previous_contexts[cfa_index], x)
+        previous_context = default(cfa_previous_contexts[cfa_index], x)
 
         outp = cfa_calc_attn(self, x, previous_context, mask)
-        print("\n====>CFA outp", outp.shape, previous_weight)
 
     else:
         current_weight = 1
         previous_weight = 0
 
     outc = cfa_calc_attn(self, x, context, mask)
-
-    print("\n====>CFA outc", outc.shape, current_weight)
 
     out = outc * current_weight
 
