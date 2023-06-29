@@ -52,6 +52,9 @@ class CFAUnit:
 
 
 def xattn_forward_cfa(self, x, context=None, mask=None):
+    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
+    cfa_current_contexts.append(x)
+
     def cfa_calc_attn(self, x, context=None, mask=None):
         dim_head = int(self.scale ** -2)
 
@@ -84,9 +87,6 @@ def xattn_forward_cfa(self, x, context=None, mask=None):
         return self.to_out(out)
 
     outc = cfa_calc_attn(self, x)
-
-    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
-    cfa_current_contexts.append(x)
 
     current_weight = cfa_current_weight
     previous_weight = cfa_previous_weight
