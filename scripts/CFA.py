@@ -130,7 +130,7 @@ def xattn_forward_log(self, x, context=None, mask=None):
         current_weight = 1
         previous_weight = 0
 
-    outc = calc_attn_efficient(x, context, mask)
+    outc = cfa_calc_attn_efficient(x, context, mask)
 
     out = outc * current_weight
 
