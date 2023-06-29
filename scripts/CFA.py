@@ -49,6 +49,48 @@ class CFAUnit:
         self.previous_weight=previous_weight
         self.current_weight=current_weight
 
+
+def xattn_forward_cfa(self, x):
+    def cfa_calc_attn(self, x, context=None):
+        b, c, *spatial = x.shape
+        x = x.reshape(b, c, -1)
+        qkv = self.qkv(self.norm(x))
+
+        if context != None:
+            qkv[1] = self.norm(context) #k
+            qkv[2] = self.norm(context) #v
+
+        h = self.attention(qkv)
+        h = self.proj_out(h)
+        return (x + h).reshape(b, c, *spatial)
+
+    outc = cfa_calc_attn(self, x)
+
+    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
+    cfa_current_contexts.append(x)
+
+    current_weight = cfa_current_weight
+    previous_weight = cfa_previous_weight
+
+    outp = None
+    if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
+        previous_context = default(cfa_previous_contexts[cfa_index], x)
+
+        outp = cfa_calc_attn(self, x, previous_context)
+
+    else:
+        current_weight = 1
+        previous_weight = 0
+
+    out = outc * current_weight
+
+    if outp != None:
+        out = out + outp * previous_weight
+
+    cfa_index = cfa_index + 1
+
+    return out
+
 def xattn_forward_log(self, x, context=None, mask=None):
 
     def cfa_calc_attn(self, x, context=None, mask=None):
@@ -185,20 +227,20 @@ class Script(scripts.Script):
                     print("\n===>CFA replace input", i)
                     org_attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['input_%d' % i] = org_attn_module.forward
-                    org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+                    org_attn_module.forward = xattn_forward_cfa.__get__(org_attn_module,org_attn_module.__class__)
 
             if cfa_unit.middle_attn:
                 print("\n===>CFA replace middle")
                 org_attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
                 saved_original_selfattn_forward['middle'] = org_attn_module.forward
-                org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+                org_attn_module.forward = xattn_forward_cfa.__get__(org_attn_module,org_attn_module.__class__)
 
             for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.output_blocks[i]._modules:
                     print("\n===>CFA replace output", i)
                     org_attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['output_%d' % i] = org_attn_module.forward
-                    org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
+                    org_attn_module.forward = xattn_forward_cfa.__get__(org_attn_module,org_attn_module.__class__)
         else:
             cfa_enabled = False
 
