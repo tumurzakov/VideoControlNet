@@ -50,19 +50,37 @@ class CFAUnit:
         self.current_weight=current_weight
 
 
-def xattn_forward_cfa(self, x):
-    def cfa_calc_attn(self, x, context=None):
-        b, c, *spatial = x.shape
-        x = x.reshape(b, c, -1)
-        qkv = self.qkv(self.norm(x))
+def xattn_forward_cfa(self, x, context=None, mask=None):
+    def cfa_calc_attn(self, x, context=None, mask=None):
+        dim_head = 64
 
-        if context != None:
-            qkv[1] = self.norm(context) #k
-            qkv[2] = self.norm(context) #v
+        q = self.to_q(x)
+        context = default(context, x)
+        k = self.to_k(context)
+        v = self.to_v(context)
 
-        h = self.attention(qkv)
-        h = self.proj_out(h)
-        return (x + h).reshape(b, c, *spatial)
+        b, _, _ = q.shape
+        q, k, v = map(
+            lambda t: t.unsqueeze(3)
+            .reshape(b, t.shape[1], self.heads, dim_head)
+            .permute(0, 2, 1, 3)
+            .reshape(b * self.heads, t.shape[1], dim_head)
+            .contiguous(),
+            (q, k, v),
+        )
+
+        # actually compute the attention, what we cannot get enough of
+        out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None, op=None)
+
+        if exists(mask):
+            raise NotImplementedError
+        out = (
+            out.unsqueeze(0)
+            .reshape(b, self.heads, out.shape[1], dim_head)
+            .permute(0, 2, 1, 3)
+            .reshape(b, out.shape[1], self.heads * dim_head)
+        )
+        return self.to_out(out)
 
     outc = cfa_calc_attn(self, x)
 
