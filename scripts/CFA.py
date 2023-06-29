@@ -49,73 +49,73 @@ class CFAUnit:
         self.previous_weight=previous_weight
         self.current_weight=current_weight
 
-def cfa_calc_attn_efficient(self, x, context=None, mask=None):
-    q = self.to_q(x)
-    context = default(context, x)
-    k = self.to_k(context)
-    v = self.to_v(context)
-
-    b, _, _ = q.shape
-    q, k, v = map(
-        lambda t: t.unsqueeze(3)
-        .reshape(b, t.shape[1], self.heads, self.dim_head)
-        .permute(0, 2, 1, 3)
-        .reshape(b * self.heads, t.shape[1], self.dim_head)
-        .contiguous(),
-        (q, k, v),
-    )
-
-    # actually compute the attention, what we cannot get enough of
-    out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None, op=self.attention_op)
-
-    if exists(mask):
-        raise NotImplementedError
-    out = (
-        out.unsqueeze(0)
-        .reshape(b, self.heads, out.shape[1], self.dim_head)
-        .permute(0, 2, 1, 3)
-        .reshape(b, out.shape[1], self.heads * self.dim_head)
-    )
-    return self.to_out(out)
-
-def cfa_calc_attn(self, x, context=None, mask=None):
-    h = self.heads
-
-    q = self.to_q(x)
-
-    context = default(context, x)
-
-    k = self.to_k(context)
-    v = self.to_v(context)
-
-    q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
-
-    # force cast to fp32 to avoid overflowing
-    if _ATTN_PRECISION == "fp32":
-        with torch.autocast(enabled=False, device_type='cuda'):
-            q, k = q.float(), k.float()
-            sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
-    else:
-        sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
-
-    del q, k
-
-    if exists(mask):
-        mask = rearrange(mask, 'b ... -> b (...)')
-        max_neg_value = -torch.finfo(sim.dtype).max
-        mask = repeat(mask, 'b j -> (b h) () j', h=h)
-        sim.masked_fill_(~mask, max_neg_value)
-
-    # attention, what we cannot get enough of
-    sim = sim.softmax(dim=-1)
-
-    out = einsum('b i j, b j d -> b i d', sim, v)
-    out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
-    out = self.to_out(out)
-
-    return out
-
 def xattn_forward_log(self, x, context=None, mask=None):
+
+    def cfa_calc_attn_efficient(self, x, context=None, mask=None):
+        q = self.to_q(x)
+        context = default(context, x)
+        k = self.to_k(context)
+        v = self.to_v(context)
+
+        b, _, _ = q.shape
+        q, k, v = map(
+            lambda t: t.unsqueeze(3)
+            .reshape(b, t.shape[1], self.heads, self.dim_head)
+            .permute(0, 2, 1, 3)
+            .reshape(b * self.heads, t.shape[1], self.dim_head)
+            .contiguous(),
+            (q, k, v),
+        )
+
+        # actually compute the attention, what we cannot get enough of
+        out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None, op=self.attention_op)
+
+        if exists(mask):
+            raise NotImplementedError
+        out = (
+            out.unsqueeze(0)
+            .reshape(b, self.heads, out.shape[1], self.dim_head)
+            .permute(0, 2, 1, 3)
+            .reshape(b, out.shape[1], self.heads * self.dim_head)
+        )
+        return self.to_out(out)
+
+    def cfa_calc_attn(self, x, context=None, mask=None):
+        h = self.heads
+
+        q = self.to_q(x)
+
+        context = default(context, x)
+
+        k = self.to_k(context)
+        v = self.to_v(context)
+
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
+
+        # force cast to fp32 to avoid overflowing
+        if _ATTN_PRECISION == "fp32":
+            with torch.autocast(enabled=False, device_type='cuda'):
+                q, k = q.float(), k.float()
+                sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+        else:
+            sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+
+        del q, k
+
+        if exists(mask):
+            mask = rearrange(mask, 'b ... -> b (...)')
+            max_neg_value = -torch.finfo(sim.dtype).max
+            mask = repeat(mask, 'b j -> (b h) () j', h=h)
+            sim.masked_fill_(~mask, max_neg_value)
+
+        # attention, what we cannot get enough of
+        sim = sim.softmax(dim=-1)
+
+        out = einsum('b i j, b j d -> b i d', sim, v)
+        out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
+        out = self.to_out(out)
+
+        return out
 
     global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
     cfa_current_contexts.append(x)
@@ -126,11 +126,11 @@ def xattn_forward_log(self, x, context=None, mask=None):
     outp = None
     if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
         prevous_context = default(cfa_previous_contexts[cfa_index], x)
-        outp = self.cfa_calc_attn_efficient(x, previous_context, mask)
+        outp = cfa_calc_attn_efficient(x, previous_context, mask)
         current_weight = 1
         previous_weight = 0
 
-    outc = self.calc_attn_efficient(x, context, mask)
+    outc = calc_attn_efficient(x, context, mask)
 
     out = outc * current_weight
 
@@ -212,14 +212,12 @@ class Script(scripts.Script):
                     org_attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['input_%d' % i] = org_attn_module.forward
                     org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
-                    org_attn_module.cfa_calc_attn = cfa_calc_attn.__get__(org_attn_module,org_attn_module.__class__)
 
             if cfa_unit.middle_attn:
                 print("\n===>CFA replace middle")
                 org_attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
                 saved_original_selfattn_forward['middle'] = org_attn_module.forward
                 org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
-                org_attn_module.cfa_calc_attn = cfa_calc_attn.__get__(org_attn_module,org_attn_module.__class__)
 
             for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.output_blocks[i]._modules:
@@ -227,7 +225,6 @@ class Script(scripts.Script):
                     org_attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['output_%d' % i] = org_attn_module.forward
                     org_attn_module.forward = xattn_forward_log.__get__(org_attn_module,org_attn_module.__class__)
-                    org_attn_module.cfa_calc_attn = cfa_calc_attn.__get__(org_attn_module,org_attn_module.__class__)
         else:
             cfa_enabled = False
 
