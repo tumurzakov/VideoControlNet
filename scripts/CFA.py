@@ -49,17 +49,34 @@ class CFAUnit:
         self.previous_weight=previous_weight
         self.current_weight=current_weight
 
-def efficient_attention(q, k, scale):
-    batch_size, seq_len, embedding_dim = q.size()
+def cfa_calc_attn_efficient(self, x, context=None, mask=None):
+    q = self.to_q(x)
+    context = default(context, x)
+    k = self.to_k(context)
+    v = self.to_v(context)
 
-    # Transpose k and perform matrix multiplication
-    k_t = k.transpose(1, 2)
-    attn_scores = torch.bmm(q, k_t)
+    b, _, _ = q.shape
+    q, k, v = map(
+        lambda t: t.unsqueeze(3)
+        .reshape(b, t.shape[1], self.heads, self.dim_head)
+        .permute(0, 2, 1, 3)
+        .reshape(b * self.heads, t.shape[1], self.dim_head)
+        .contiguous(),
+        (q, k, v),
+    )
 
-    # Scale the attention scores
-    attn_scores = attn_scores * scale
+    # actually compute the attention, what we cannot get enough of
+    out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None, op=self.attention_op)
 
-    return attn_scores
+    if exists(mask):
+        raise NotImplementedError
+    out = (
+        out.unsqueeze(0)
+        .reshape(b, self.heads, out.shape[1], self.dim_head)
+        .permute(0, 2, 1, 3)
+        .reshape(b, out.shape[1], self.heads * self.dim_head)
+    )
+    return self.to_out(out)
 
 def cfa_calc_attn(self, x, context=None, mask=None):
     h = self.heads
@@ -109,11 +126,11 @@ def xattn_forward_log(self, x, context=None, mask=None):
     outp = None
     if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
         prevous_context = default(cfa_previous_contexts[cfa_index], x)
-        outp = self.cfa_calc_attn(x, previous_context, mask)
+        outp = self.cfa_calc_attn_efficient(x, previous_context, mask)
         current_weight = 1
         previous_weight = 0
 
-    outc = self.calc_attn(x, context, mask)
+    outc = self.calc_attn_efficient(x, context, mask)
 
     out = outc * current_weight
 
