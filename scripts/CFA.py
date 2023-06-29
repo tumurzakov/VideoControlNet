@@ -52,7 +52,7 @@ class CFAUnit:
 
 def xattn_forward_cfa(self, x, context=None, mask=None):
     def cfa_calc_attn(self, x, context=None, mask=None):
-        dim_head = 64
+        dim_head = int(self.scale ** -2)
 
         q = self.to_q(x)
         context = default(context, x)
