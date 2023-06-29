@@ -144,7 +144,8 @@ def append_sag_units(units=[], sag_enabled=False, sag_scale=0.75, sag_mask_thres
             sag_args_to = sag_args_to + 1
 
         return units, sag_args_from, sag_args_to
-    except:
+    except Exception as e:
+      print("\n===>SAG Error", e)
       return units, 0, 0
 
 def append_cfa_units(units=[],
@@ -179,7 +180,8 @@ def append_cfa_units(units=[],
             cfa_args_to = cfa_args_to + 1
 
         return units, cfa_args_from, cfa_args_to
-    except:
+    except Exception as e:
+      print("\n===>CFA Error", e)
       return units, 0, 0
 
 def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
