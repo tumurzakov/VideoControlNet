@@ -51,35 +51,6 @@ class CFAUnit:
 
 def xattn_forward_log(self, x, context=None, mask=None):
 
-    def cfa_calc_attn_efficient(self, x, context=None, mask=None):
-        q = self.to_q(x)
-        context = default(context, x)
-        k = self.to_k(context)
-        v = self.to_v(context)
-
-        b, _, _ = q.shape
-        q, k, v = map(
-            lambda t: t.unsqueeze(3)
-            .reshape(b, t.shape[1], self.heads, self.dim_head)
-            .permute(0, 2, 1, 3)
-            .reshape(b * self.heads, t.shape[1], self.dim_head)
-            .contiguous(),
-            (q, k, v),
-        )
-
-        # actually compute the attention, what we cannot get enough of
-        out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None, op=self.attention_op)
-
-        if exists(mask):
-            raise NotImplementedError
-        out = (
-            out.unsqueeze(0)
-            .reshape(b, self.heads, out.shape[1], self.dim_head)
-            .permute(0, 2, 1, 3)
-            .reshape(b, out.shape[1], self.heads * self.dim_head)
-        )
-        return self.to_out(out)
-
     def cfa_calc_attn(self, x, context=None, mask=None):
         h = self.heads
 
@@ -126,11 +97,17 @@ def xattn_forward_log(self, x, context=None, mask=None):
     outp = None
     if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
         prevous_context = default(cfa_previous_contexts[cfa_index], x)
+
         outp = cfa_calc_attn(self, x, previous_context, mask)
+        print("\n====>CFA outp", outp.shape, previous_weight)
+
+    else:
         current_weight = 1
         previous_weight = 0
 
     outc = cfa_calc_attn(self, x, context, mask)
+
+    print("\n====>CFA outc", outc.shape, current_weight)
 
     out = outc * current_weight
 
