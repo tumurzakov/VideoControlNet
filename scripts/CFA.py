@@ -52,7 +52,7 @@ class CFAUnit:
 
 
 def xattn_forward_cfa(self, x, context=None, mask=None):
-    global cfa_layers, cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
+    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
     cfa_current_contexts.append(x)
 
     def cfa_calc_attn(self, x, context=None, mask=None):
@@ -93,11 +93,7 @@ def xattn_forward_cfa(self, x, context=None, mask=None):
 
     outp = None
     if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
-        previous_context = None
-        previous_contexts = cfa_previous_contexts[-cfa_layers:]
-        previous_context = previous_contexts[cfa_index%cfa_layers]
-        previous_context = default(previous_context, x)
-        outp = cfa_calc_attn(self, x, previous_context)
+        outp = cfa_calc_attn(self, x, cfa_previous_contexts[cfa_index])
 
     else:
         current_weight = 1
@@ -241,7 +237,7 @@ class Script(scripts.Script):
             global cfa_layers, cfa_current_contexts
             processed.cfa_layers = cfa_layers
             if len(cfa_current_contexts) > 0:
-                processed.cfa_contexts = cfa_current_contexts[-cfa_layers:]
+                processed.cfa_contexts = cfa_current_contexts
             cfa_current_contexts = []
             cfa_index = 0
         return
