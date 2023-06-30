@@ -241,7 +241,7 @@ class Script(scripts.Script):
             global cfa_layers, cfa_current_contexts
             processed.cfa_layers = cfa_layers
             if len(cfa_current_contexts) > 0:
-                processed.cfa_contexts = cfa_current_contexts
+                processed.cfa_contexts = cfa_current_contexts[-cfa_layers:]
             cfa_current_contexts = []
             cfa_index = 0
         return
