@@ -52,7 +52,7 @@ class CFAUnit:
 
 
 def xattn_forward_cfa(self, x, context=None, mask=None):
-    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
+    global cfa_layers, cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
     cfa_current_contexts.append(x)
 
     def cfa_calc_attn(self, x, context=None, mask=None):
@@ -93,8 +93,10 @@ def xattn_forward_cfa(self, x, context=None, mask=None):
 
     outp = None
     if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
-        previous_context = default(cfa_previous_contexts[cfa_index], x)
-
+        previous_context = None
+        previous_contexts = cfa_previous_contexts[-cfa_layers:]
+        previous_context = previous_contexts[cfa_index%cfa_layers]
+        previous_context = default(previous_context, x)
         outp = cfa_calc_attn(self, x, previous_context)
 
     else:
@@ -110,71 +112,6 @@ def xattn_forward_cfa(self, x, context=None, mask=None):
 
     return out
 
-def xattn_forward_log(self, x, context=None, mask=None):
-
-    def cfa_calc_attn(self, x, context=None, mask=None):
-        h = self.heads
-
-        q = self.to_q(x)
-
-        context = default(context, x)
-
-        k = self.to_k(context)
-        v = self.to_v(context)
-
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
-
-        # force cast to fp32 to avoid overflowing
-        if _ATTN_PRECISION == "fp32":
-            with torch.autocast(enabled=False, device_type='cuda'):
-                q, k = q.float(), k.float()
-                sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
-        else:
-            sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
-
-        del q, k
-
-        if exists(mask):
-            mask = rearrange(mask, 'b ... -> b (...)')
-            max_neg_value = -torch.finfo(sim.dtype).max
-            mask = repeat(mask, 'b j -> (b h) () j', h=h)
-            sim.masked_fill_(~mask, max_neg_value)
-
-        # attention, what we cannot get enough of
-        sim = sim.softmax(dim=-1)
-
-        out = einsum('b i j, b j d -> b i d', sim, v)
-        out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
-        out = self.to_out(out)
-
-        return out
-
-    global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
-    cfa_current_contexts.append(x)
-
-    current_weight = cfa_current_weight
-    previous_weight = cfa_previous_weight
-
-    outp = None
-    if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
-        previous_context = default(cfa_previous_contexts[cfa_index], x)
-
-        outp = cfa_calc_attn(self, x, previous_context, mask)
-
-    else:
-        current_weight = 1
-        previous_weight = 0
-
-    outc = cfa_calc_attn(self, x, context, mask)
-
-    out = outc * current_weight
-
-    if outp != None:
-        out = out + outp * previous_weight
-
-    cfa_index = cfa_index + 1
-    return out
-
 saved_original_selfattn_forward = {}
 current_selfattn_map = None
 cfa_enabled = False
@@ -182,6 +119,7 @@ cfa_enabled = False
 cfa_previous_contexts = None
 cfa_current_contexts = []
 cfa_index = 0
+cfa_layers = 0
 cfa_previous_weight = 1
 cfa_current_weight = 0
 
@@ -218,7 +156,7 @@ class Script(scripts.Script):
         except:
             pass
 
-        global cfa_enabled, cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
+        global cfa_enabled, cfa_layers, cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
 
         enabled, cfa_previous_contexts = [False, None]
 
@@ -237,6 +175,7 @@ class Script(scripts.Script):
             p.cfa_enabled = True
             cfa_enabled = True
             cfa_index = 0
+            cfa_layers = 0
             cfa_current_contexts = []
             global saved_original_selfattn_forward
             # replace target self attention module in unet with ours
@@ -247,12 +186,14 @@ class Script(scripts.Script):
                     org_attn_module = shared.sd_model.model.diffusion_model.input_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['input_%d' % i] = org_attn_module.forward
                     org_attn_module.forward = xattn_forward_cfa.__get__(org_attn_module,org_attn_module.__class__)
+                    cfa_layers = cfa_layers + 1
 
             if cfa_unit.middle_attn:
                 print("\n===>CFA replace middle")
                 org_attn_module = shared.sd_model.model.diffusion_model.middle_block._modules['1'].transformer_blocks._modules['0'].attn1
                 saved_original_selfattn_forward['middle'] = org_attn_module.forward
                 org_attn_module.forward = xattn_forward_cfa.__get__(org_attn_module,org_attn_module.__class__)
+                cfa_layers = cfa_layers + 1
 
             for i in range(cfa_unit.output_attn_start,cfa_unit.output_attn_end):
                 if '1' in shared.sd_model.model.diffusion_model.output_blocks[i]._modules:
@@ -260,6 +201,7 @@ class Script(scripts.Script):
                     org_attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     saved_original_selfattn_forward['output_%d' % i] = org_attn_module.forward
                     org_attn_module.forward = xattn_forward_cfa.__get__(org_attn_module,org_attn_module.__class__)
+                    cfa_layers = cfa_layers + 1
         else:
             cfa_enabled = False
 
@@ -296,7 +238,8 @@ class Script(scripts.Script):
                     attn_module = shared.sd_model.model.diffusion_model.output_blocks[i]._modules['1'].transformer_blocks._modules['0'].attn1
                     attn_module.forward = saved_original_selfattn_forward['output_%d' % i]
 
-            global cfa_current_contexts
+            global cfa_layers, cfa_current_contexts
+            processed.cfa_layers = cfa_layers
             if len(cfa_current_contexts) > 0:
                 processed.cfa_contexts = cfa_current_contexts
             cfa_current_contexts = []
