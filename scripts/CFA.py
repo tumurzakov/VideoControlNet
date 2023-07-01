@@ -53,7 +53,7 @@ class CFAUnit:
 
 def xattn_forward_cfa(self, x, context=None, mask=None):
     global cfa_previous_contexts, cfa_current_contexts, cfa_index, cfa_previous_weight, cfa_current_weight
-    cfa_current_contexts.append(x)
+    cfa_current_contexts.append(x.detach())
 
     def cfa_calc_attn(self, x, context=None, mask=None):
         dim_head = int(self.scale ** -2)
@@ -93,7 +93,7 @@ def xattn_forward_cfa(self, x, context=None, mask=None):
 
     outp = None
     if cfa_previous_contexts != None and len(cfa_previous_contexts) > cfa_index:
-        outp = cfa_calc_attn(self, x, cfa_previous_contexts[cfa_index])
+        outp = cfa_calc_attn(self, x, cfa_previous_contexts[cfa_index].to('cuda'))
 
     else:
         current_weight = 1
