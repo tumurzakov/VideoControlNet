@@ -975,10 +975,13 @@ def enline(images):
         line.paste(images[i], (i*width, 0))
     return line
 
-def deline(line, power):
-    width = line.width / power**2
+def deline(line, power, count=None):
+    if count == None:
+        count = power**2
+
+    width = line.width / count
     height = line.height
-    batch_size = power**2
+    batch_size = count
     images = []
     for i in range(batch_size):
         crop = line.crop((i*width, 0, (i+1)*width, height))
