@@ -70,7 +70,7 @@ cnet_enabled = {
     'scribble': {'modules':['scribble_xdog', 'scribble_hed'], 'model':''},
     'softedge': {'modules':['softedge_hed', 'softedge_hedsafe', 'softedge_pidinet', 'softedge_pidisafe'], 'model':''},
     'shuffle': {'modules':['shuffle'], 'model':''},
-    'ip2p': {'modules':[''], 'model':''},
+    'ip2p': {'modules':['ip2p'], 'model':''},
     'tile': {'modules':['tile_resample'], 'model':''},
     'temporal': {'modules':['temporal'], 'model':''},
 }
