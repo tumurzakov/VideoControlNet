@@ -111,7 +111,11 @@ def append_cnet_units(units=[], controlnets=[], **kwargs):
 
     cnet_mode = cnet_external_code.ControlMode.BALANCED
     if 'mode' in controlnets[cnet_module]:
-      cnet_mode = controlnets[cnet_module]['mode']
+      mode = controlnets[cnet_module]['mode']
+      if mode == 'cnet_important':
+      	cnet_mode = cnet_external_code.ControlMode.CONTROL
+      elif mode == 'prompt_important':
+      	cnet_mode = cnet_external_code.ControlMode.PROMPT
 
     if cnet_module == 'temporal':
       module = None
