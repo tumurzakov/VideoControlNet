@@ -109,6 +109,10 @@ def append_cnet_units(units=[], controlnets=[], **kwargs):
     if 'module' in controlnets[cnet_module]:
       module=controlnets[cnet_module]['module']
 
+    cnet_mode = cnet_external_code.ControlMode.BALANCED
+    if 'mode' in controlnets[cnet_module]:
+      cnet_mode = controlnets[cnet_module]['mode']
+
     if cnet_module == 'temporal':
       module = None
 
@@ -122,6 +126,7 @@ def append_cnet_units(units=[], controlnets=[], **kwargs):
           weight=cnet_weight,
           image=np.array(cnet_image),
           processor_res=512,
+          control_mode=cnet_mode,
         )
       )
       cnet_args_to = cnet_args_to + 1
