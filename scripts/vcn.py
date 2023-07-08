@@ -50,6 +50,7 @@ from tqdm.auto import trange, tqdm
 utils = importlib.import_module("repositories.k-diffusion.k_diffusion.utils")
 sampling = importlib.import_module("repositories.k-diffusion.k_diffusion.sampling")
 upscale = importlib.import_module("extensions.ultimate-upscale-for-automatic1111.scripts.ultimate-upscale")
+processor = importlib.import_module("extensions.sd-webui-controlnet.scripts.processor")
 
 from torchvision.models.optical_flow import raft_large
 from torchvision.models.optical_flow import Raft_Large_Weights
