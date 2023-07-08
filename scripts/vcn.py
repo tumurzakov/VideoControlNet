@@ -1141,3 +1141,7 @@ def bend(image, flows, batch_size):
              batch.append(warp)
          flow = flow + flows[i]
     return engrid(batch)
+
+def preprocess(func, image):
+    arr, _ = func(np.array(image), image.height)
+    return Image.fromarray(arr)
